@@ -10,7 +10,8 @@ TOKEN = os.getenv("STARTER_BOT_TOKEN", "")
 PAYMENT_URL = os.getenv("STARTER_PAYMENT_URL", "https://example.com/pay")
 PRIVATE_CHANNEL_INVITE = os.getenv("STARTER_PRIVATE_CHANNEL_INVITE", "https://t.me/+your_invite")
 MANAGER_USERNAME = os.getenv("STARTER_MANAGER_USERNAME", "aivalitgolovanebolit")
-ADMIN_CHAT_ID = int(os.getenv("STARTER_ADMIN_CHAT_ID", "0"))
+_admin_raw = (os.getenv("STARTER_ADMIN_CHAT_ID", "") or "").strip()
+ADMIN_CHAT_ID = int(_admin_raw) if _admin_raw.isdigit() else 0
 
 
 WELCOME = (

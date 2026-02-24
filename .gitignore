@@ -1,5 +1,6 @@
 # Secrets
 .env
+.env.starter
 
 # OpenClaw runtime artifacts
 .openclaw/*.log
