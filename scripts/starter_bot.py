@@ -27,8 +27,9 @@ def main_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("💳 Купить за 1200 ₽", url=PAYMENT_URL)],
-            [InlineKeyboardButton("✅ Я оплатил", callback_data="paid")],
+            [InlineKeyboardButton("🎁 Что я получу", callback_data="value")],
             [InlineKeyboardButton("❓ Что внутри", callback_data="inside")],
+            [InlineKeyboardButton("✅ Я оплатил", callback_data="paid")],
         ]
     )
 
@@ -47,6 +48,23 @@ async def inside(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 10 CTA-формул\n"
         "• 7-дневный план публикаций\n"
         "• Инструкция для новичков (бесплатный старт)"
+    )
+    await q.message.reply_text(text, parse_mode="Markdown", reply_markup=main_kb())
+
+
+async def value(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    text = (
+        "🎁 *Что вы получите после оплаты 1200 ₽:*\n\n"
+        "1) *Мгновенный доступ* в приватный канал с материалами.\n"
+        "2) *Пошаговую инструкцию* «как начать за 15 минут».\n"
+        "3) *Готовые инструменты:* промпты, хуки, CTA и план на 7 дней.\n"
+        "4) *Понятный формат:* открыл → скопировал → применил → опубликовал.\n"
+        "5) *Поддержку по вопросам* — если застряли, пишете и получаете направление.\n\n"
+        "✅ Без сложной теории.\n"
+        "✅ Подходит новичкам.\n"
+        "✅ Первый результат можно получить в день покупки."
     )
     await q.message.reply_text(text, parse_mode="Markdown", reply_markup=main_kb())
 
@@ -109,6 +127,7 @@ def run() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("paid", paid_hint))
+    app.add_handler(CallbackQueryHandler(value, pattern="^value$"))
     app.add_handler(CallbackQueryHandler(inside, pattern="^inside$"))
     app.add_handler(CallbackQueryHandler(paid, pattern="^paid$"))
     app.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, proof_handler))
