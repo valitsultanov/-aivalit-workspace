@@ -20,3 +20,4 @@ archive/tmp/
 
 # Local state
 .pi/
+models/*.bin
