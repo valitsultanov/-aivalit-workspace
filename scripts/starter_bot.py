@@ -87,6 +87,7 @@ CTA: «визуал», «карточки», «промпт».
 def main_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [InlineKeyboardButton("🎯 7-дневный старт", callback_data="day_start")],
             [InlineKeyboardButton("💳 Купить за 1200 ₽", url=PAYMENT_URL)],
             [InlineKeyboardButton("🧭 Выбрать трек", callback_data="tracks")],
             [InlineKeyboardButton("📚 Материалы в TG", callback_data="mat_base")],
@@ -106,6 +107,81 @@ def tracks_kb() -> InlineKeyboardMarkup:
             [InlineKeyboardButton("🎨 Визуал", callback_data="mat_visual")],
         ]
     )
+
+
+DAY_STEPS = {
+    1: """📅 День 1/7 — Первый контакт с AI
+
+Задача: получить первый полезный ответ.
+
+Сделай:
+1) Открой Kimi: https://www.kimi.com/
+2) Вставь запрос: «Дай 10 тем постов для моей ниши [ниша] с CTA»
+3) Выбери 1 тему и опубликуй сегодня.
+
+✅ Результат дня: 1 опубликованный пост.""",
+    2: """📅 День 2/7 — Формула сильного промпта
+
+Шаблон:
+- Задача
+- Контекст
+- Формат ответа
+- Ограничения
+
+Сделай:
+Попроси AI переписать вчерашний пост в 3 стилях: дружелюбный, экспертный, дерзкий.
+
+✅ Результат дня: выбери лучший стиль.""",
+    3: """📅 День 3/7 — Хуки и CTA
+
+Сделай:
+1) Запроси 10 хуков
+2) Запроси 10 CTA
+3) Собери 1 новый пост из хука+контента+CTA
+
+✅ Результат дня: 1 пост с сильным началом и концом.""",
+    4: """📅 День 4/7 — Контент-план на неделю
+
+Сделай:
+Попроси AI сделать план на 7 дней: боль, экспертность, кейс, оффер, ошибки, мини-гайд, итоги.
+
+✅ Результат дня: готов календарь публикаций.""",
+    5: """📅 День 5/7 — Выбор трека
+
+Выбери направление:
+🧠 Эксперт / 📈 Инфобиз / 🎨 Визуал
+
+Сделай 1 профильный запрос из своего трека.
+
+✅ Результат дня: первая профильная заготовка.""",
+    6: """📅 День 6/7 — Мини-кейс под себя
+
+Сделай:
+Попроси AI оформить мини-кейс «было → сделал → стало» по твоему опыту за 5 дней.
+
+✅ Результат дня: кейс-пост для доверия.""",
+    7: """📅 День 7/7 — Закрепление результата
+
+Сделай:
+1) Подведи итоги недели
+2) Сформулируй оффер (что, для кого, результат)
+3) Напиши пост с CTA в личку
+
+✅ Результат дня: ты готов стабильно вести контент с AI.""",
+}
+
+
+def day_kb(day: int) -> InlineKeyboardMarkup:
+    day = max(1, min(7, day))
+    rows = []
+    if day > 1:
+        rows.append([InlineKeyboardButton("⬅️ Назад", callback_data=f"day_{day-1}")])
+    if day < 7:
+        rows.append([InlineKeyboardButton("✅ Готово, дальше", callback_data=f"day_{day+1}")])
+    else:
+        rows.append([InlineKeyboardButton("🏁 Завершить 7/7", callback_data="day_done")])
+    rows.append([InlineKeyboardButton("📚 Материалы", callback_data="mat_base")])
+    return InlineKeyboardMarkup(rows)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -141,6 +217,35 @@ async def value(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Первый результат можно получить в день покупки."
     )
     await q.message.reply_text(text, parse_mode="Markdown", reply_markup=main_kb())
+
+
+async def day_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    context.user_data["day"] = 1
+    await q.message.reply_text(DAY_STEPS[1], reply_markup=day_kb(1))
+
+
+async def day_show(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    data = q.data or "day_1"
+    try:
+        day = int(data.split("_", 1)[1])
+    except Exception:
+        day = 1
+    context.user_data["day"] = day
+    await q.message.reply_text(DAY_STEPS.get(day, DAY_STEPS[1]), reply_markup=day_kb(day))
+
+
+async def day_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    context.user_data["day"] = 7
+    await q.message.reply_text(
+        "🏆 Ты прошёл 7-дневный старт!\n\nТеперь переходи в профильный трек и закрепляй результат в ежедневной практике.",
+        reply_markup=tracks_kb(),
+    )
 
 
 async def tracks(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -235,6 +340,9 @@ def run() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("paid", paid_hint))
+    app.add_handler(CallbackQueryHandler(day_start, pattern="^day_start$"))
+    app.add_handler(CallbackQueryHandler(day_done, pattern="^day_done$"))
+    app.add_handler(CallbackQueryHandler(day_show, pattern=r"^day_[1-7]$"))
     app.add_handler(CallbackQueryHandler(tracks, pattern="^tracks$"))
     app.add_handler(CallbackQueryHandler(mat_base, pattern="^mat_base$"))
     app.add_handler(CallbackQueryHandler(mat_expert, pattern="^mat_expert$"))
