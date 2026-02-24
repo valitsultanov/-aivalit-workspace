@@ -29,14 +29,81 @@ TRACK_INFOBIZ = "https://teletype.in/@aivalit/4ONC4ZP346W"
 TRACK_VISUAL = "https://teletype.in/@aivalit/ScNH4NCfxHe"
 
 
+BASE_MATERIAL = """📘 База: быстрый старт
+
+1) Выбери нишу и цель (лиды/продажи/охваты)
+2) Скопируй 1 промпт
+3) Публикуй 1 пост сегодня
+
+Стартовые промпты:
+1. Дай 10 тем постов для ниши [ниша], которые ведут в личку. Для каждой темы дай хук и CTA.
+2. Напиши пост по формуле «боль → решение → CTA» на тему [тема].
+3. Сделай 10 CTA для перевода читателя в диалог.
+
+План 7 дней:
+Д1 Боль+CTA, Д2 Экспертный пост, Д3 Кейс, Д4 Оффер, Д5 Ошибки, Д6 Мини-гайд, Д7 Итоги+CTA.
+"""
+
+EXPERT_MATERIAL = """🧠 Трек: Эксперт/наставник
+
+Цель: заявки на консультации.
+
+Промпты:
+1. Дай 10 тем постов для эксперта в нише [ниша], ведущих к заявке.
+2. Напиши пост PAS для [тема] с CTA «напиши разбор».
+3. Сгенерируй 5 сторис для прогрева консультации за 24 часа.
+4. Составь FAQ по возражениям «дорого/подумаю/нет времени».
+
+CTA: «разбор», «план», «консультация».
+"""
+
+INFOBIZ_MATERIAL = """📈 Трек: Инфобиз
+
+Цель: быстрее делать упаковку и запуск.
+
+Промпты:
+1. Сформулируй оффер: для кого / результат / срок / формат.
+2. Напиши структуру лендинга: hero, боли, решение, кейсы, CTA.
+3. Сделай презентацию вебинара на 12 слайдов с логикой продаж.
+4. Сгенерируй 7 продающих постов под запуск.
+
+CTA: «лендинг», «слайды», «запуск».
+"""
+
+VISUAL_MATERIAL = """🎨 Трек: Коммерческий визуал
+
+Цель: карточки, обложки, иллюстрации под коммерцию.
+
+Промпты:
+1. Создай 10 идей визуала для [продукт/ниша] в стиле [стиль].
+2. Сгенерируй промпт для карточки товара с акцентом на выгоду.
+3. Сгенерируй промпт для персонажа бренда (3 варианта).
+4. Сделай серию из 5 визуалов для соцсетей в едином стиле.
+
+CTA: «визуал», «карточки», «промпт».
+"""
+
+
 def main_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("💳 Купить за 1200 ₽", url=PAYMENT_URL)],
             [InlineKeyboardButton("🧭 Выбрать трек", callback_data="tracks")],
+            [InlineKeyboardButton("📚 Материалы в TG", callback_data="mat_base")],
             [InlineKeyboardButton("🎁 Что я получу", callback_data="value")],
             [InlineKeyboardButton("❓ Что внутри", callback_data="inside")],
             [InlineKeyboardButton("✅ Я оплатил", callback_data="paid")],
+        ]
+    )
+
+
+def tracks_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("📘 База", callback_data="mat_base")],
+            [InlineKeyboardButton("🧠 Эксперт", callback_data="mat_expert")],
+            [InlineKeyboardButton("📈 Инфобиз", callback_data="mat_infobiz")],
+            [InlineKeyboardButton("🎨 Визуал", callback_data="mat_visual")],
         ]
     )
 
@@ -81,13 +148,33 @@ async def tracks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     text = (
         "🧭 *Выбери трек под свою задачу:*\n\n"
-        f"• База (старт): {TRACK_BASE}\n"
-        f"• Эксперт/наставник: {TRACK_EXPERT}\n"
-        f"• Инфобиз: {TRACK_INFOBIZ}\n"
-        f"• Коммерческий визуал: {TRACK_VISUAL}\n\n"
-        "Начни с базы, потом переходи в профильный трек."
+        "Можно читать прямо в Telegram (без Teletype)."
     )
-    await q.message.reply_text(text, parse_mode="Markdown", disable_web_page_preview=True, reply_markup=main_kb())
+    await q.message.reply_text(text, parse_mode="Markdown", reply_markup=tracks_kb())
+
+
+async def mat_base(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text(BASE_MATERIAL, reply_markup=tracks_kb())
+
+
+async def mat_expert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text(EXPERT_MATERIAL, reply_markup=tracks_kb())
+
+
+async def mat_infobiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text(INFOBIZ_MATERIAL, reply_markup=tracks_kb())
+
+
+async def mat_visual(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    await q.message.reply_text(VISUAL_MATERIAL, reply_markup=tracks_kb())
 
 
 async def paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -149,6 +236,10 @@ def run() -> None:
     app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("paid", paid_hint))
     app.add_handler(CallbackQueryHandler(tracks, pattern="^tracks$"))
+    app.add_handler(CallbackQueryHandler(mat_base, pattern="^mat_base$"))
+    app.add_handler(CallbackQueryHandler(mat_expert, pattern="^mat_expert$"))
+    app.add_handler(CallbackQueryHandler(mat_infobiz, pattern="^mat_infobiz$"))
+    app.add_handler(CallbackQueryHandler(mat_visual, pattern="^mat_visual$"))
     app.add_handler(CallbackQueryHandler(value, pattern="^value$"))
     app.add_handler(CallbackQueryHandler(inside, pattern="^inside$"))
     app.add_handler(CallbackQueryHandler(paid, pattern="^paid$"))
