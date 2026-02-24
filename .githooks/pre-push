@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Block large files >95MB in index
+limit=$((95*1024*1024))
+while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  size=$(wc -c <"$file" | tr -d ' ')
+  if [ "$size" -gt "$limit" ]; then
+    echo "❌ Blocked: $file is larger than 95MB. Use LFS or archive." >&2
+    exit 1
+  fi
+done < <(git diff --cached --name-only)
+# Basic secret patterns
+if git diff --cached | grep -E '(github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|OPENSSH|EC) PRIVATE KEY-----)' >/dev/null; then
+  echo "❌ Blocked: possible secret detected in staged changes." >&2
+  exit 1
+fi
