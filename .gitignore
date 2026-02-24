@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# OpenClaw runtime artifacts
+.openclaw/*.log
+.openclaw/*.err
+.openclaw/yadisk-uploaded.txt
+
+# macOS
+.DS_Store
+
+# Python/Node generic caches
+__pycache__/
+*.pyc
+node_modules/
+
+# Temporary files
+tmp_*
+archive/tmp/
+
+# Local state
+.pi/
