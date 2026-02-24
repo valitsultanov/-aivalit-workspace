@@ -25,7 +25,7 @@ WELCOME = (
 def main_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("💳 Купить за $10", url=PAYMENT_URL)],
+            [InlineKeyboardButton("💳 Купить за 1200 ₽", url=PAYMENT_URL)],
             [InlineKeyboardButton("✅ Я оплатил", callback_data="paid")],
             [InlineKeyboardButton("❓ Что внутри", callback_data="inside")],
         ]
