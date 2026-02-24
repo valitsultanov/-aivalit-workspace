@@ -23,10 +23,17 @@ WELCOME = (
 )
 
 
+TRACK_BASE = "https://teletype.in/@aivalit/Nnkm6bQJmkw"
+TRACK_EXPERT = "https://teletype.in/@aivalit/oG5qJHji17_"
+TRACK_INFOBIZ = "https://teletype.in/@aivalit/4ONC4ZP346W"
+TRACK_VISUAL = "https://teletype.in/@aivalit/ScNH4NCfxHe"
+
+
 def main_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("💳 Купить за 1200 ₽", url=PAYMENT_URL)],
+            [InlineKeyboardButton("🧭 Выбрать трек", callback_data="tracks")],
             [InlineKeyboardButton("🎁 Что я получу", callback_data="value")],
             [InlineKeyboardButton("❓ Что внутри", callback_data="inside")],
             [InlineKeyboardButton("✅ Я оплатил", callback_data="paid")],
@@ -67,6 +74,20 @@ async def value(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Первый результат можно получить в день покупки."
     )
     await q.message.reply_text(text, parse_mode="Markdown", reply_markup=main_kb())
+
+
+async def tracks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    await q.answer()
+    text = (
+        "🧭 *Выбери трек под свою задачу:*\n\n"
+        f"• База (старт): {TRACK_BASE}\n"
+        f"• Эксперт/наставник: {TRACK_EXPERT}\n"
+        f"• Инфобиз: {TRACK_INFOBIZ}\n"
+        f"• Коммерческий визуал: {TRACK_VISUAL}\n\n"
+        "Начни с базы, потом переходи в профильный трек."
+    )
+    await q.message.reply_text(text, parse_mode="Markdown", disable_web_page_preview=True, reply_markup=main_kb())
 
 
 async def paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -127,6 +148,7 @@ def run() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("paid", paid_hint))
+    app.add_handler(CallbackQueryHandler(tracks, pattern="^tracks$"))
     app.add_handler(CallbackQueryHandler(value, pattern="^value$"))
     app.add_handler(CallbackQueryHandler(inside, pattern="^inside$"))
     app.add_handler(CallbackQueryHandler(paid, pattern="^paid$"))
