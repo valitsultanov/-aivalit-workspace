@@ -323,9 +323,9 @@ def slide_content(data: dict, index: int, total: int) -> Image.Image:
     if subheading:
         y += 10
         f_sub = font("sans_regular", FONT_SIZES["subheading"])
-        draw_wrapped(draw, subheading, f_sub, M, y, W - M * 2,
-                     COLORS["text_secondary"])
-        y += text_h(f_sub) + 24
+        y = draw_wrapped(draw, subheading, f_sub, M, y, W - M * 2,
+                         COLORS["text_secondary"])
+        y += 24
 
     # Divider
     draw_olive_divider(draw, M, y, W - M * 2)
@@ -425,11 +425,66 @@ def slide_cta(data: dict, index: int, total: int) -> Image.Image:
     return img
 
 
+def slide_cover_gradient(data: dict, index: int, total: int) -> Image.Image:
+    """Gradient cover — warm orange-to-cream, white bold headline."""
+    img = Image.new("RGB", (W, H), "#F0EBE0")
+    draw = ImageDraw.Draw(img)
+
+    # Warm gradient: orange top → cream bottom
+    from PIL import ImageFilter
+    grad = Image.new("RGB", (W, H))
+    g_draw = ImageDraw.Draw(grad)
+    top_rgb = (220, 110, 50)    # warm orange matching the photo background
+    bot_rgb = (240, 235, 224)   # cream
+    for y_px in range(H):
+        t = y_px / H
+        r = int(top_rgb[0] * (1 - t) + bot_rgb[0] * t)
+        g = int(top_rgb[1] * (1 - t) + bot_rgb[1] * t)
+        b = int(top_rgb[2] * (1 - t) + bot_rgb[2] * t)
+        g_draw.line([(0, y_px), (W, y_px)], fill=(r, g, b))
+    img = grad
+    draw = ImageDraw.Draw(img)
+
+    # If actual photo provided, paste it in bottom half
+    photo = data.get("photo", "")
+    if photo:
+        paste_photo(img, photo, (0, H // 2, W, H // 2))
+        draw = ImageDraw.Draw(img)
+
+    # Dark semi-transparent strip behind text
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ov = ImageDraw.Draw(overlay)
+    ov.rectangle([0, 0, W, int(H * 0.52)], fill=(0, 0, 0, 140))
+    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    # Heading — bold white sans
+    heading = data.get("heading", "")
+    f_h = font("sans_bold", FONT_SIZES["cover_heading"])
+    y = M + 30
+    y = draw_wrapped(draw, heading, f_h, M, y, W - M * 2, COLORS["white"], line_gap=1.15)
+
+    # Subheading
+    sub = data.get("subheading", "")
+    if sub:
+        y += 16
+        f_s = font("sans_regular", FONT_SIZES["cover_sub"])
+        draw_wrapped(draw, sub, f_s, M, y, W - M * 2, "#DDDDDD")
+
+    # Bottom credit
+    f_c = font("sans_regular", FONT_SIZES["caption"])
+    credit = data.get("credit", BRAND["handle"])
+    draw.text((M, H - M - text_h(f_c)), credit, font=f_c, fill="#BBBBBB")
+
+    return img
+
+
 SLIDE_BUILDERS = {
-    "cover":   slide_cover,
-    "content": slide_content,
-    "quote":   slide_quote,
-    "cta":     slide_cta,
+    "cover":          slide_cover,
+    "cover_gradient": slide_cover_gradient,
+    "content":        slide_content,
+    "quote":          slide_quote,
+    "cta":            slide_cta,
 }
 
 
