@@ -21,3 +21,7 @@ archive/tmp/
 # Local state
 .pi/
 models/*.bin
+
+# Carousel generator output
+scripts/carousel/output/**/*.jpg
+scripts/carousel/output/**/*.png
