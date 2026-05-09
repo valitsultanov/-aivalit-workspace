@@ -1,48 +1,69 @@
 # Brand configuration for @sultanov.valit Instagram carousels
+# Style: editorial / magazine (cream background, serif headings, olive accent)
 
 CANVAS = {
     "width": 1080,
-    "height": 1350,  # portrait — best for IG carousel reach
+    "height": 1350,
 }
 
 COLORS = {
-    "bg_dark":      "#0D0D0D",
-    "bg_card":      "#1A1A1A",
-    "accent":       "#C8FF00",   # neon lime — energy / AI feel
-    "accent_muted": "#8AB800",
-    "text_primary": "#F5F5F5",
-    "text_secondary": "#A0A0A0",
-    "divider":      "#2E2E2E",
-    "tag_bg":       "#1F2D00",
-    "tag_text":     "#C8FF00",
+    "bg":            "#F0EBE0",   # warm cream
+    "bg_card":       "#FFFFFF",
+    "text_primary":  "#1A1A1A",
+    "text_secondary":"#666666",
+    "accent":        "#7A8C3C",   # olive green
+    "accent_light":  "#C4CC9A",   # muted olive for ghost elements
+    "card_border":   "#1A1A1A",
+    "divider":       "#7A8C3C",
+    "ghost":         "#E2D9CC",   # large ghost number color
+    "cover_overlay": (0, 0, 0, 170),  # RGBA semi-transparent for photo covers
+    "white":         "#FFFFFF",
+    "tag_text":      "#7A8C3C",
 }
 
 FONTS = {
-    # Uses bundled DejaVu (always available on Linux); swap paths for custom fonts
-    "heading":  "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "body":     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "mono":     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    "serif_bold":        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+    "serif_regular":     "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+    "serif_italic":      "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+    "serif_bold_italic": "/usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf",
+    "sans_regular":      "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "sans_bold":         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "sans_italic":       "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
 }
 
 FONT_SIZES = {
-    "slide_number": 22,
-    "tag":          24,
-    "heading":      64,
-    "subheading":   40,
-    "body":         34,
+    "topbar":       26,
+    "category":     24,
+    "heading_xl":   96,
+    "heading_lg":   72,
+    "heading_md":   52,
+    "subheading":   34,
+    "card_label":   30,
+    "card_body":    30,
     "caption":      26,
-    "cta":          42,
-    "handle":       28,
+    "bottom_bar":   26,
+    "ghost":        380,
+    "cover_heading":76,
+    "cover_sub":    34,
 }
 
 LAYOUT = {
-    "margin":        80,
-    "inner_padding": 60,
-    "corner_radius": 32,
-    "line_spacing":  1.4,
+    "margin":         72,
+    "card_padding_x": 32,
+    "card_padding_y": 22,
+    "card_gap":       16,
+    "card_radius":    18,
+    "card_border":    2,
+    "topbar_height":  80,
+    "bottom_bar_h":   70,
+    "label_col_w":    280,  # width reserved for card label column
+    "col_gap":        24,
 }
 
 BRAND = {
     "handle":  "@sultanov.valit",
+    "channel": "sultanov.valit",
+    "hashtag": "#sultanov_valit",
     "tagline": "AI · Бизнес · Рост",
+    "nav_cta": "ЛИСТАЙ →",
 }

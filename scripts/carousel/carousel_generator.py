@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
 Instagram Carousel Generator for @sultanov.valit
+Editorial / magazine style — cream background, serif fonts, olive accent.
+
 Usage:
-    python carousel_generator.py --config my_carousel.json
     python carousel_generator.py --demo
+    python carousel_generator.py --config my_carousel.json --name my_post
 """
 
 import argparse
 import json
-import math
 import os
-import textwrap
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 from brand_config import CANVAS, COLORS, FONTS, FONT_SIZES, LAYOUT, BRAND
 
@@ -23,17 +22,21 @@ from brand_config import CANVAS, COLORS, FONTS, FONT_SIZES, LAYOUT, BRAND
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+W = CANVAS["width"]
+H = CANVAS["height"]
+M = LAYOUT["margin"]
+
 
 # ──────────────────────────────────────────────
 # Font cache
 # ──────────────────────────────────────────────
 
-_font_cache: dict[tuple, ImageFont.FreeTypeFont] = {}
+_font_cache: dict = {}
 
-def get_font(style: str, size: int) -> ImageFont.FreeTypeFont:
+def font(style: str, size: int) -> ImageFont.FreeTypeFont:
     key = (style, size)
     if key not in _font_cache:
-        path = FONTS.get(style, FONTS["body"])
+        path = FONTS.get(style, FONTS["sans_regular"])
         try:
             _font_cache[key] = ImageFont.truetype(path, size)
         except OSError:
@@ -42,264 +45,383 @@ def get_font(style: str, size: int) -> ImageFont.FreeTypeFont:
 
 
 # ──────────────────────────────────────────────
-# Drawing helpers
+# Drawing primitives
 # ──────────────────────────────────────────────
 
-def hex_to_rgb(h: str) -> tuple:
-    h = h.lstrip("#")
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+def text_w(f: ImageFont.FreeTypeFont, text: str) -> int:
+    bb = f.getbbox(text)
+    return bb[2] - bb[0]
+
+def text_h(f: ImageFont.FreeTypeFont, text: str = "Hg") -> int:
+    bb = f.getbbox(text)
+    return bb[3] - bb[1]
 
 
-def draw_rounded_rect(draw: ImageDraw.Draw, xy: tuple, radius: int, fill: str, outline: Optional[str] = None, outline_width: int = 2):
-    x1, y1, x2, y2 = xy
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill, outline=outline, width=outline_width)
-
-
-def draw_text_wrapped(draw: ImageDraw.Draw, text: str, font: ImageFont.FreeTypeFont,
-                       x: int, y: int, max_width: int, fill: str,
-                       line_spacing: float = 1.4, align: str = "left") -> int:
-    """Draw wrapped text, return final Y position."""
+def wrap_text(f: ImageFont.FreeTypeFont, text: str, max_w: int) -> list[str]:
     words = text.split()
-    lines = []
-    current = ""
+    lines, cur = [], ""
     for word in words:
-        test = f"{current} {word}".strip()
-        bbox = font.getbbox(test)
-        if bbox[2] - bbox[0] <= max_width:
-            current = test
+        candidate = f"{cur} {word}".strip()
+        if text_w(f, candidate) <= max_w:
+            cur = candidate
         else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
+            if cur:
+                lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
 
-    line_h = int((font.getbbox("Hg")[3] - font.getbbox("Hg")[1]) * line_spacing)
+
+def draw_wrapped(draw: ImageDraw.Draw, text: str, f: ImageFont.FreeTypeFont,
+                 x: int, y: int, max_w: int, fill: str,
+                 line_gap: float = 1.35, align: str = "left") -> int:
+    lines = wrap_text(f, text, max_w)
+    lh = int(text_h(f) * line_gap)
     for line in lines:
         if align == "center":
-            w = font.getbbox(line)[2] - font.getbbox(line)[0]
-            draw.text((x + (max_width - w) // 2, y), line, font=font, fill=fill)
+            offset = (max_w - text_w(f, line)) // 2
+            draw.text((x + offset, y), line, font=f, fill=fill)
+        elif align == "right":
+            offset = max_w - text_w(f, line)
+            draw.text((x + offset, y), line, font=f, fill=fill)
         else:
-            draw.text((x, y), line, font=font, fill=fill)
-        y += line_h
+            draw.text((x, y), line, font=f, fill=fill)
+        y += lh
     return y
 
 
-def draw_handle_bar(draw: ImageDraw.Draw, img_w: int, img_h: int):
-    m = LAYOUT["margin"]
-    font = get_font("body", FONT_SIZES["handle"])
-    text = BRAND["handle"]
-    bbox = font.getbbox(text)
-    tw = bbox[2] - bbox[0]
-    x = img_w - m - tw
-    y = img_h - m - (bbox[3] - bbox[1]) - 10
-    draw.text((x, y), text, font=font, fill=COLORS["accent_muted"])
+def draw_multipart_heading(draw: ImageDraw.Draw,
+                            parts: list[dict], x: int, y: int, max_w: int,
+                            line_gap: float = 1.2) -> int:
+    """
+    Render a heading made of parts, each with {text, style, color}.
+    Parts flow word-by-word; a part with "newline": true forces a line break.
+    Simple approach: render each part on its own line for now.
+    """
+    for part in parts:
+        txt = part.get("text", "")
+        style = part.get("style", "serif_bold")
+        color = part.get("color", COLORS["text_primary"])
+        size = part.get("size", FONT_SIZES["heading_xl"])
+        f = font(style, size)
+        y = draw_wrapped(draw, txt, f, x, y, max_w, color, line_gap=line_gap)
+    return y
 
 
-def draw_slide_number(draw: ImageDraw.Draw, current: int, total: int, img_w: int):
-    m = LAYOUT["margin"]
-    font = get_font("body", FONT_SIZES["slide_number"])
-    text = f"{current}/{total}"
-    draw.text((m, m), text, font=font, fill=COLORS["text_secondary"])
+def draw_rounded_rect(draw: ImageDraw.Draw, box: tuple, radius: int,
+                      fill: str, outline: Optional[str] = None, width: int = 2):
+    draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
-def draw_accent_line(draw: ImageDraw.Draw, x: int, y: int, length: int = 80):
-    draw.rectangle([x, y, x + length, y + 5], fill=COLORS["accent"])
+def draw_ghost_number(draw: ImageDraw.Draw, number: int):
+    f = font("serif_bold", FONT_SIZES["ghost"])
+    txt = str(number)
+    tw = text_w(f, txt)
+    th = text_h(f, txt)
+    # Right-anchored, vertically centered, slightly cut off
+    x = W - tw + tw // 5
+    y = (H - th) // 2 + 60
+    draw.text((x, y), txt, font=f, fill=COLORS["ghost"])
 
 
-def draw_tag(draw: ImageDraw.Draw, tag: str, x: int, y: int) -> int:
-    """Draw a pill-shaped tag, return width consumed."""
-    font = get_font("body", FONT_SIZES["tag"])
-    bbox = font.getbbox(tag)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
-    pad_x, pad_y = 24, 14
-    w = tw + pad_x * 2
-    h = th + pad_y * 2
-    draw_rounded_rect(draw, (x, y, x + w, y + h), radius=h // 2,
-                      fill=COLORS["tag_bg"], outline=COLORS["accent"], outline_width=1)
-    draw.text((x + pad_x, y + pad_y - 2), tag, font=font, fill=COLORS["tag_text"])
-    return w
+def draw_top_bar(draw: ImageDraw.Draw, slide_n: int, total: int,
+                 channel: str = BRAND["channel"]):
+    f = font("sans_regular", FONT_SIZES["topbar"])
+    y = M - 10
+    draw.text((M, y), channel.upper(), font=f, fill=COLORS["text_secondary"])
+    num_text = f"{slide_n:02d}/{total:02d}"
+    draw.text((W - M - text_w(f, num_text), y), num_text, font=f, fill=COLORS["text_secondary"])
+
+
+def draw_bottom_bar(draw: ImageDraw.Draw, hashtag: str = BRAND["hashtag"],
+                    cta: str = BRAND["nav_cta"], is_last: bool = False):
+    f = font("sans_regular", FONT_SIZES["bottom_bar"])
+    y = H - M - text_h(f) - 4
+    # thin divider line
+    draw.rectangle([M, y - 16, W - M, y - 14], fill=COLORS["divider"])
+    draw.text((M, y), hashtag, font=f, fill=COLORS["text_secondary"])
+    right_text = BRAND["handle"] if is_last else cta
+    draw.text((W - M - text_w(f, right_text), y), right_text,
+              font=f, fill=COLORS["accent"] if is_last else COLORS["text_primary"])
+
+
+def draw_category_label(draw: ImageDraw.Draw, label: str, x: int, y: int) -> int:
+    f = font("sans_regular", FONT_SIZES["category"])
+    draw.text((x, y), label.upper(), font=f, fill=COLORS["accent"])
+    return y + text_h(f) + 14
+
+
+def draw_olive_divider(draw: ImageDraw.Draw, x: int, y: int, w: int):
+    draw.rectangle([x, y, x + w, y + 2], fill=COLORS["divider"])
 
 
 # ──────────────────────────────────────────────
-# Slide types
+# Card row (label | description)
 # ──────────────────────────────────────────────
 
-def make_base_image() -> tuple[Image.Image, ImageDraw.Draw]:
-    img = Image.new("RGB", (CANVAS["width"], CANVAS["height"]), COLORS["bg_dark"])
+def measure_card_height(label: str, description: str, available_w: int) -> int:
+    lc_w = LAYOUT["label_col_w"]
+    gap = LAYOUT["col_gap"]
+    desc_w = available_w - lc_w - gap
+    px, py = LAYOUT["card_padding_x"], LAYOUT["card_padding_y"]
+
+    f_lbl = font("serif_italic", FONT_SIZES["card_label"])
+    f_desc = font("sans_regular", FONT_SIZES["card_body"])
+
+    lbl_lines = wrap_text(f_lbl, label, lc_w - px)
+    desc_lines = wrap_text(f_desc, description, desc_w - px)
+
+    lbl_h = len(lbl_lines) * int(text_h(f_lbl) * 1.3)
+    desc_h = len(desc_lines) * int(text_h(f_desc) * 1.35)
+
+    return max(lbl_h, desc_h) + py * 2
+
+
+def draw_card_row(draw: ImageDraw.Draw, label: str, description: str,
+                  x: int, y: int, card_w: int) -> int:
+    lc_w = LAYOUT["label_col_w"]
+    gap = LAYOUT["col_gap"]
+    desc_w = card_w - lc_w - gap
+    px, py = LAYOUT["card_padding_x"], LAYOUT["card_padding_y"]
+    card_h = measure_card_height(label, description, card_w)
+
+    draw_rounded_rect(draw, (x, y, x + card_w, y + card_h),
+                      radius=LAYOUT["card_radius"],
+                      fill=COLORS["bg_card"],
+                      outline=COLORS["card_border"],
+                      width=LAYOUT["card_border"])
+
+    f_lbl = font("serif_italic", FONT_SIZES["card_label"])
+    draw_wrapped(draw, label, f_lbl, x + px, y + py, lc_w - px,
+                 COLORS["accent"], line_gap=1.3)
+
+    f_desc = font("sans_regular", FONT_SIZES["card_body"])
+    draw_wrapped(draw, description, f_desc, x + lc_w + gap, y + py,
+                 desc_w - px, COLORS["text_primary"], line_gap=1.35)
+
+    return y + card_h
+
+
+def paste_photo(img: Image.Image, photo_path: str,
+                box: tuple, blend: float = 1.0):
+    """Paste a photo cropped to box dimensions."""
+    try:
+        ph = Image.open(photo_path).convert("RGBA")
+        bx, by, bw, bh = box
+        # Resize to fill box (crop center)
+        ratio = max(bw / ph.width, bh / ph.height)
+        new_w, new_h = int(ph.width * ratio), int(ph.height * ratio)
+        ph = ph.resize((new_w, new_h), Image.LANCZOS)
+        ox = (new_w - bw) // 2
+        oy = (new_h - bh) // 2
+        ph = ph.crop((ox, oy, ox + bw, oy + bh))
+        img.paste(ph, (bx, by), ph)
+    except Exception:
+        pass  # photo optional — skip silently
+
+
+# ──────────────────────────────────────────────
+# Slide builders
+# ──────────────────────────────────────────────
+
+def base_image() -> tuple[Image.Image, ImageDraw.Draw]:
+    img = Image.new("RGB", (W, H), COLORS["bg"])
     draw = ImageDraw.Draw(img)
     return img, draw
 
 
 def slide_cover(data: dict, index: int, total: int) -> Image.Image:
-    """Full-bleed title slide."""
-    img, draw = make_base_image()
-    m = LAYOUT["margin"]
-    w, h = CANVAS["width"], CANVAS["height"]
+    """Photo cover with bold white headline overlay."""
+    img, draw = base_image()
 
-    # Background accent block (top-right corner)
-    block_size = 340
-    draw.rectangle([w - block_size, 0, w, block_size], fill=COLORS["tag_bg"])
-
-    # Tag(s)
-    tags = data.get("tags", [])
-    tx = m
-    ty = m + 60
-    for tag in tags:
-        tw = draw_tag(draw, tag, tx, ty)
-        tx += tw + 16
+    photo = data.get("photo", "")
+    if photo:
+        # Full-bleed photo
+        paste_photo(img, photo, (0, 0, W, H))
+        # Dark overlay for readability
+        overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ov_draw = ImageDraw.Draw(overlay)
+        ov_draw.rectangle([0, 0, W, H // 2 + 100],
+                          fill=(0, 0, 0, 160))
+        img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+        draw = ImageDraw.Draw(img)
+        text_color = COLORS["white"]
+        sub_color = "#CCCCCC"
+    else:
+        # No photo — styled cream cover
+        # Accent block top-left
+        draw.rectangle([0, 0, W, 420], fill="#1A1A1A")
+        text_color = COLORS["white"]
+        sub_color = COLORS["accent_light"]
 
     # Heading
     heading = data.get("heading", "")
-    font_h = get_font("heading", FONT_SIZES["heading"])
-    y = ty + 100
-    y = draw_text_wrapped(draw, heading, font_h, m, y, w - m * 2, COLORS["text_primary"])
-
-    # Accent line
-    draw_accent_line(draw, m, y + 30)
+    f_h = font("sans_bold", FONT_SIZES["cover_heading"])
+    y = M + 40
+    y = draw_wrapped(draw, heading, f_h, M, y, W - M * 2, text_color, line_gap=1.2)
 
     # Subheading
     sub = data.get("subheading", "")
     if sub:
-        font_s = get_font("body", FONT_SIZES["subheading"])
-        y = draw_text_wrapped(draw, sub, font_s, m, y + 70, w - m * 2, COLORS["text_secondary"])
+        y += 20
+        f_s = font("sans_regular", FONT_SIZES["cover_sub"])
+        draw_wrapped(draw, sub, f_s, M, y, W - M * 2, sub_color)
 
-    # Bottom brand strip
-    draw.rectangle([0, h - 140, w, h], fill=COLORS["bg_card"])
-    font_brand = get_font("heading", FONT_SIZES["cta"])
-    tagline_bbox = font_brand.getbbox(BRAND["tagline"])
-    draw.text((m, h - 100), BRAND["handle"], font=font_brand, fill=COLORS["accent"])
-    font_tag = get_font("body", FONT_SIZES["caption"])
-    draw.text((m, h - 50), BRAND["tagline"], font=font_tag, fill=COLORS["text_secondary"])
+    # Bottom credit
+    f_c = font("sans_regular", FONT_SIZES["caption"])
+    credit = data.get("credit", BRAND["handle"])
+    draw.text((M, H - M - text_h(f_c)), credit, font=f_c, fill="#AAAAAA")
 
-    draw_slide_number(draw, index, total, w)
     return img
 
 
 def slide_content(data: dict, index: int, total: int) -> Image.Image:
-    """Standard content slide with heading + body bullets."""
-    img, draw = make_base_image()
-    m = LAYOUT["margin"]
-    w, h = CANVAS["width"], CANVAS["height"]
+    """Main editorial content slide with card rows."""
+    img, draw = base_image()
 
-    # Slide number
-    draw_slide_number(draw, index, total, w)
+    is_last = index == total
+    draw_ghost_number(draw, index)
+    draw_top_bar(draw, index, total)
+    draw_bottom_bar(draw, is_last=is_last)
 
-    y = m + 80
+    content_top = M + LAYOUT["topbar_height"]
+    content_bottom = H - M - LAYOUT["bottom_bar_h"] - 20
+    available_h = content_bottom - content_top
+    card_w = W - M * 2
 
-    # Tag
-    tag = data.get("tag", "")
-    if tag:
-        draw_tag(draw, tag, m, y)
-        y += 80
+    y = content_top
 
-    # Heading
+    # Category
+    category = data.get("category", "")
+    if category:
+        y = draw_category_label(draw, category, M, y)
+
+    # Heading parts or simple string
     heading = data.get("heading", "")
-    font_h = get_font("heading", FONT_SIZES["subheading"])
-    y = draw_text_wrapped(draw, heading, font_h, m, y, w - m * 2, COLORS["accent"])
-    y += 20
+    heading_parts = data.get("heading_parts", [])
 
-    draw_accent_line(draw, m, y)
-    y += 50
+    if heading_parts:
+        # Multi-style heading
+        y = draw_multipart_heading(draw, heading_parts, M, y, W - M * 2)
+    elif heading:
+        italic_word = data.get("heading_italic", "")
+        f_bold = font("serif_bold", FONT_SIZES["heading_xl"])
+        f_ital = font("serif_italic", FONT_SIZES["heading_xl"])
+        if italic_word:
+            # heading on one line(s), then italic word below in olive
+            y = draw_wrapped(draw, heading, f_bold, M, y,
+                             W - M * 2, COLORS["text_primary"], line_gap=1.1)
+            y = draw_wrapped(draw, italic_word, f_ital, M, y,
+                             W - M * 2, COLORS["accent"], line_gap=1.1)
+        else:
+            y = draw_wrapped(draw, heading, f_bold, M, y,
+                             W - M * 2, COLORS["text_primary"], line_gap=1.1)
 
-    # Body bullets
-    bullets = data.get("bullets", [])
-    font_b = get_font("body", FONT_SIZES["body"])
-    font_bullet = get_font("heading", FONT_SIZES["body"])
-    for bullet in bullets:
-        # bullet dot
-        draw.ellipse([m, y + 10, m + 18, y + 28], fill=COLORS["accent"])
-        y = draw_text_wrapped(draw, bullet, font_b, m + 36, y, w - m * 2 - 36, COLORS["text_primary"])
-        y += 20
+    # Subheading
+    subheading = data.get("subheading", "")
+    if subheading:
+        y += 10
+        f_sub = font("sans_regular", FONT_SIZES["subheading"])
+        draw_wrapped(draw, subheading, f_sub, M, y, W - M * 2,
+                     COLORS["text_secondary"])
+        y += text_h(f_sub) + 24
 
-    # Optional note
-    note = data.get("note", "")
-    if note:
-        y += 20
-        draw_rounded_rect(draw, (m, y, w - m, y + 120), radius=16,
-                          fill=COLORS["bg_card"], outline=COLORS["divider"])
-        font_note = get_font("body", FONT_SIZES["caption"])
-        draw_text_wrapped(draw, note, font_note, m + 24, y + 28, w - m * 2 - 48, COLORS["text_secondary"])
+    # Divider
+    draw_olive_divider(draw, M, y, W - M * 2)
+    y += 28
 
-    draw_handle_bar(draw, w, h)
+    # Card rows
+    cards = data.get("cards", [])
+    for card in cards:
+        lbl = card.get("label", "")
+        desc = card.get("description", "")
+        y = draw_card_row(draw, lbl, desc, M, y, card_w)
+        y += LAYOUT["card_gap"]
+
+    # Optional photo at bottom (cutout style)
+    photo = data.get("photo", "")
+    if photo and y < content_bottom - 100:
+        photo_h = content_bottom - y - 20
+        paste_photo(img, photo, (0, y + 10, W, photo_h))
+
+    # Optional italic caption near photo
+    caption = data.get("caption", "")
+    if caption:
+        f_cap = font("serif_italic", FONT_SIZES["subheading"])
+        cap_y = content_bottom - text_h(f_cap) - 60
+        draw.text((M + 40, cap_y), caption, font=f_cap, fill=COLORS["text_primary"])
+
     return img
 
 
 def slide_quote(data: dict, index: int, total: int) -> Image.Image:
-    """Full-slide quote / highlight."""
-    img, draw = make_base_image()
-    m = LAYOUT["margin"]
-    w, h = CANVAS["width"], CANVAS["height"]
+    """Full-slide pull quote."""
+    img, draw = base_image()
 
-    draw_slide_number(draw, index, total, w)
-
-    # Big opening quote mark
-    font_quote = get_font("heading", 200)
-    draw.text((m - 20, h // 2 - 280), "“", font=font_quote, fill=COLORS["tag_bg"])
+    is_last = index == total
+    draw_ghost_number(draw, index)
+    draw_top_bar(draw, index, total)
+    draw_bottom_bar(draw, is_last=is_last)
 
     quote = data.get("quote", "")
-    font_q = get_font("heading", FONT_SIZES["heading"] - 8)
-    center_x = m
-    y = h // 2 - 160
-    y = draw_text_wrapped(draw, quote, font_q, center_x, y, w - m * 2, COLORS["text_primary"])
-
     author = data.get("author", "")
+
+    f_q = font("serif_italic", FONT_SIZES["heading_lg"])
+    f_a = font("sans_regular", FONT_SIZES["subheading"])
+
+    # Opening mark
+    f_mark = font("serif_bold", 200)
+    draw.text((M - 10, H // 2 - 260), "“", font=f_mark, fill=COLORS["accent_light"])
+
+    y = H // 2 - 160
+    y = draw_wrapped(draw, quote, f_q, M, y, W - M * 2, COLORS["text_primary"], line_gap=1.3)
+
     if author:
         y += 40
-        draw_accent_line(draw, m, y)
-        y += 30
-        font_a = get_font("body", FONT_SIZES["caption"])
-        draw.text((m, y), f"— {author}", font=font_a, fill=COLORS["accent_muted"])
+        draw_olive_divider(draw, M, y, 100)
+        y += 20
+        draw.text((M, y), f"— {author}", font=f_a, fill=COLORS["accent"])
 
-    draw_handle_bar(draw, w, h)
     return img
 
 
 def slide_cta(data: dict, index: int, total: int) -> Image.Image:
     """Call-to-action final slide."""
-    img, draw = make_base_image()
-    m = LAYOUT["margin"]
-    w, h = CANVAS["width"], CANVAS["height"]
+    img, draw = base_image()
 
-    # Full accent block background stripe
-    draw.rectangle([0, h // 3, w, h // 3 + 8], fill=COLORS["accent"])
+    draw_top_bar(draw, index, total)
+    draw_bottom_bar(draw, is_last=True)
 
-    draw_slide_number(draw, index, total, w)
-
-    # Emoji / icon area
-    icon = data.get("icon", "\U0001f4a1")
-    font_icon = get_font("body", 120)
-    draw.text((w // 2 - 60, h // 4 - 60), icon, font=font_icon, fill=COLORS["text_primary"])
-
-    y = h // 3 + 80
+    # Big accent block
+    block_y = H // 3
+    draw.rectangle([0, block_y, W, block_y + 6], fill=COLORS["accent"])
 
     heading = data.get("heading", "Сохрани и поделись!")
-    font_h = get_font("heading", FONT_SIZES["cta"])
-    y = draw_text_wrapped(draw, heading, font_h, m, y, w - m * 2, COLORS["text_primary"], align="center")
+    subheading = data.get("subheading", "")
 
-    y += 40
-    sub = data.get("subheading", "")
-    if sub:
-        font_s = get_font("body", FONT_SIZES["body"])
-        y = draw_text_wrapped(draw, sub, font_s, m, y, w - m * 2, COLORS["text_secondary"], align="center")
+    f_h = font("serif_bold", FONT_SIZES["heading_lg"])
+    f_s = font("sans_regular", FONT_SIZES["subheading"])
 
-    # CTA button shape
-    btn_y = y + 60
-    btn_h = 100
-    draw_rounded_rect(draw, (m + 60, btn_y, w - m - 60, btn_y + btn_h),
-                      radius=50, fill=COLORS["accent"])
-    btn_text = data.get("button", "Подписаться")
-    font_btn = get_font("heading", FONT_SIZES["cta"] - 4)
-    bbox = font_btn.getbbox(btn_text)
-    bw = bbox[2] - bbox[0]
-    draw.text(((w - bw) // 2, btn_y + 22), btn_text, font=font_btn, fill=COLORS["bg_dark"])
+    y = block_y + 60
+    y = draw_wrapped(draw, heading, f_h, M, y, W - M * 2, COLORS["text_primary"])
 
-    # Handle
-    font_handle = get_font("body", FONT_SIZES["handle"])
-    hb = font_handle.getbbox(BRAND["handle"])
-    hw = hb[2] - hb[0]
-    draw.text(((w - hw) // 2, h - m - 40), BRAND["handle"], font=font_handle, fill=COLORS["text_secondary"])
+    if subheading:
+        y += 20
+        draw_wrapped(draw, subheading, f_s, M, y, W - M * 2, COLORS["text_secondary"])
+        y += text_h(f_s) * 2 + 20
+
+    # Handle pill button
+    btn_y = y + 40
+    btn_h = 90
+    draw_rounded_rect(draw, (M + 80, btn_y, W - M - 80, btn_y + btn_h),
+                      radius=45, fill=COLORS["text_primary"])
+    f_btn = font("sans_bold", FONT_SIZES["heading_md"] - 4)
+    btn_text = BRAND["handle"]
+    bw = text_w(f_btn, btn_text)
+    draw.text(((W - bw) // 2, btn_y + (btn_h - text_h(f_btn)) // 2),
+              btn_text, font=f_btn, fill=COLORS["white"])
+
     return img
 
 
@@ -312,7 +434,7 @@ SLIDE_BUILDERS = {
 
 
 # ──────────────────────────────────────────────
-# Main generator
+# Main
 # ──────────────────────────────────────────────
 
 def generate_carousel(config: dict, folder_name: str = "carousel") -> Path:
@@ -327,7 +449,7 @@ def generate_carousel(config: dict, folder_name: str = "carousel") -> Path:
         builder = SLIDE_BUILDERS.get(slide_type, slide_content)
         img = builder(slide, i, total)
         path = out_dir / f"slide_{i:02d}.jpg"
-        img.save(path, "JPEG", quality=95)
+        img.save(path, "JPEG", quality=96)
         print(f"  [{i}/{total}] {slide_type:10s} → {path.name}")
 
     print("Done.")
@@ -335,37 +457,50 @@ def generate_carousel(config: dict, folder_name: str = "carousel") -> Path:
 
 
 # ──────────────────────────────────────────────
-# Demo
+# Demo config — AI tools carousel
 # ──────────────────────────────────────────────
 
 DEMO_CONFIG = {
     "slides": [
         {
             "type": "cover",
-            "tags": ["AI", "Бизнес"],
-            "heading": "5 инструментов AI которые заменят целый отдел",
-            "subheading": "Читай до конца — последний пункт удивит",
+            "heading": "что читают топ-маркетологи и AI-предприниматели",
+            "subheading": "большой пак ресурсов и инструментов",
+            "credit": "тгк: sultanov.valit",
         },
         {
             "type": "content",
-            "tag": "№1",
-            "heading": "ChatGPT / Claude",
-            "bullets": [
-                "Пишет тексты, письма, скрипты продаж",
-                "Анализирует данные и таблицы",
-                "Заменяет копирайтера и аналитика",
+            "category": "Блок 1 · Основы",
+            "heading": "Синергия с",
+            "heading_italic": "ИИ",
+            "subheading": "AI Synergy — автоматизируй рутину",
+            "cards": [
+                {"label": "Claude + ChatGPT",
+                 "description": "Глубокие тексты, анализ данных, скрипты продаж — ваш 24/7 копирайтер"},
+                {"label": "Midjourney",
+                 "description": "Генерация визуала для постов и рекламы без дизайнера"},
+                {"label": "Make (Integromat)",
+                 "description": "Автоматизация любых процессов без кода — 24/7 без менеджера"},
+                {"label": "HeyGen / Synthesia",
+                 "description": "Видео-аватары для масштабирования контента без съёмок"},
             ],
-            "note": "Экономия: от 50 000 ₽/мес на одном инструменте",
+            "caption": "ИИ у нас дома...",
         },
         {
             "type": "content",
-            "tag": "№2",
-            "heading": "Midjourney / DALL·E",
-            "bullets": [
-                "Генерирует визуал для постов и рекламы",
-                "Логотипы, баннеры, концепт-арт",
-                "Нет нужды в дизайнере для базовых задач",
+            "category": "Блок 2 · Мышление",
+            "heading": "Нетривиальные",
+            "heading_italic": "фокусы",
+            "subheading": "Углы, которых нет в стандартном тулките",
+            "cards": [
+                {"label": "Reddit Answers",
+                 "description": "Правда без фильтров — реальные боли аудитории из сабреддитов"},
+                {"label": "Wait But Why",
+                 "description": "Сложнейшие темы от ИИ до Марса, разложенные на понятные концепции"},
+                {"label": "Not Boring",
+                 "description": "Бизнес- и тех-тренды через призму стратегии и сторителлинга"},
             ],
+            "caption": "ну и фокусы у вас, пацаны...",
         },
         {
             "type": "quote",
@@ -374,34 +509,37 @@ DEMO_CONFIG = {
         },
         {
             "type": "content",
-            "tag": "№3",
-            "heading": "Make (Integromat) + AI",
-            "bullets": [
-                "Автоматизирует рутинные процессы",
-                "Связывает любые сервисы без кода",
-                "Обрабатывает лиды 24/7 без менеджера",
+            "category": "Блок 3 · Рост",
+            "heading": "Проактивность",
+            "subheading": "Инициатива, которая делает незаменимым",
+            "cards": [
+                {"label": "Product Hunt",
+                 "description": "Как бренды представляют себя миру — главная площадка запуска"},
+                {"label": "«So Good They Can't Ignore You»",
+                 "description": "Кэл Ньюпорт: драйв приходит с мастерством, а не с поиском призвания"},
+                {"label": "MakerPad",
+                 "description": "No-code сообщество: собирай прототипы сам, без программистов"},
             ],
+            "caption": "никакой активности, коллеги",
         },
         {
             "type": "cta",
-            "icon": "\U0001f525",
             "heading": "Сохрани чтобы не потерять",
-            "subheading": "Подписывайся — каждую неделю практические AI-инструменты для бизнеса",
-            "button": "@sultanov.valit",
+            "subheading": "Подписывайся — каждую неделю AI-инструменты и стратегии для роста",
         },
     ]
 }
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Instagram Carousel Generator")
+    parser = argparse.ArgumentParser(description="Instagram Carousel Generator — editorial style")
     parser.add_argument("--config", help="Path to JSON config file")
     parser.add_argument("--demo", action="store_true", help="Generate demo carousel")
     parser.add_argument("--name", default="carousel", help="Output folder name")
     args = parser.parse_args()
 
     if args.demo:
-        generate_carousel(DEMO_CONFIG, folder_name="demo_carousel")
+        generate_carousel(DEMO_CONFIG, folder_name="demo_editorial")
     elif args.config:
         with open(args.config) as f:
             cfg = json.load(f)
