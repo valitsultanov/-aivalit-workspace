@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 20% 8%;
+    --foreground: 210 20% 94%;
+    --card: 222 20% 11%;
+    --card-foreground: 210 20% 94%;
+    --muted: 222 15% 18%;
+    --muted-foreground: 210 12% 55%;
+    --border: 222 15% 20%;
+    --input: 222 15% 16%;
+    --ring: 25 95% 53%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Number hero — big bold saved-time display */
+.hero-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
