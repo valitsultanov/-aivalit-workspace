@@ -12,7 +12,12 @@ import {
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const refresh = useCallback(() => setTasks(getTasks()), []);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+    // Re-sync when onboarding saves the first task via window.storage event
+    window.addEventListener("storage", refresh);
+    return () => window.removeEventListener("storage", refresh);
+  }, [refresh]);
   const addTask = useCallback((task: Task) => { saveTask(task); refresh(); }, [refresh]);
   const removeTask = useCallback((id: string) => { deleteTask(id); refresh(); }, [refresh]);
   return { tasks, addTask, removeTask, refresh };
@@ -27,7 +32,12 @@ export function useDailyNote(date: string) {
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>({ userName: "", hourlyRate: 0, currency: "$", dailyGoal: 2 });
-  useEffect(() => { setSettings(getSettings()); }, []);
+  const refresh = useCallback(() => setSettings(getSettings()), []);
+  useEffect(() => {
+    refresh();
+    window.addEventListener("storage", refresh);
+    return () => window.removeEventListener("storage", refresh);
+  }, [refresh]);
   const update = useCallback((s: Settings) => { saveSettings(s); setSettings(s); }, []);
   return { settings, update };
 }

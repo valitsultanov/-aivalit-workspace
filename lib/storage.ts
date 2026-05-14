@@ -5,6 +5,7 @@ const KEYS = {
   notes: "aipt_daily_notes",
   settings: "aipt_settings",
   journey: "aipt_journey",
+  onboarded: "aipt_onboarded",
 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -73,3 +74,7 @@ export function updateJourney(patch: Partial<Journey>): Journey {
 export function setJourneyStage(stage: JourneyStage): void {
   updateJourney({ stage });
 }
+
+// Onboarding
+export function isOnboarded(): boolean { return read<boolean>(KEYS.onboarded, false); }
+export function markOnboarded(): void { write(KEYS.onboarded, true); }
