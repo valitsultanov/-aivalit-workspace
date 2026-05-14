@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart2, Calendar, Settings, Zap, Lightbulb, Hammer, Radio, BadgeDollarSign } from "lucide-react";
+import { BarChart2, Calendar, Settings, Zap, Lightbulb, Hammer, Radio, BadgeDollarSign, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useJourney } from "@/hooks/useStore";
 import { JourneyStage } from "@/lib/types";
@@ -13,6 +13,7 @@ function stageIndex(s: JourneyStage) { return STAGE_ORDER.indexOf(s); }
 
 const TOP_LINKS = [
   { href: "/", label: "Сегодня", icon: Calendar },
+  { href: "/journey", label: "Мой путь", icon: Map },
   { href: "/weekly", label: "Неделя", icon: BarChart2 },
 ];
 
@@ -110,7 +111,7 @@ export function Navigation() {
       <nav className="fixed md:hidden bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border bg-card px-1 py-1">
         {[
           { href: "/", icon: Calendar, label: "Сегодня" },
-          { href: "/idea", icon: Lightbulb, label: "Идея" },
+          { href: "/journey", icon: Map, label: "Путь" },
           { href: "/build", icon: Hammer, label: "Строим" },
           { href: "/demand", icon: Radio, label: "Спрос" },
           { href: "/sale", icon: BadgeDollarSign, label: "Продажа" },

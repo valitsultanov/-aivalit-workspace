@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useJourney, useTasks } from "@/hooks/useStore";
+import { PaywallGate } from "@/components/PaywallGate";
 import { generateIdeas, generateMilestones, generatePostContent } from "@/lib/ideas";
 import { IdeaAnswers, ProductIdea } from "@/lib/types";
 import { formatHours, minutesToHours } from "@/lib/calculations";
@@ -52,7 +53,7 @@ function FormatBadge({ format }: { format: ProductIdea["format"] }) {
   );
 }
 
-export default function IdeaPage() {
+function IdeaPageInner() {
   const router = useRouter();
   const { journey, patch } = useJourney();
   const { tasks } = useTasks();
@@ -314,6 +315,10 @@ function StepCard({ title, subtitle, children }: { title: string; subtitle: stri
       {children}
     </div>
   );
+}
+
+export default function IdeaPage() {
+  return <PaywallGate feature="Idea Finder"><IdeaPageInner /></PaywallGate>;
 }
 
 function AlreadyChosen({ idea, onReset, onContinue }: { idea: ProductIdea; onReset: () => void; onContinue: () => void }) {

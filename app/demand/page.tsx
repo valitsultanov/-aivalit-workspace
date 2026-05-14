@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useJourney } from "@/hooks/useStore";
+import { PaywallGate } from "@/components/PaywallGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Copy, Check, MessageCircle, ThumbsUp, Mail, Flame } from "lucide-react";
@@ -49,6 +50,10 @@ function DemandStatus({ total }: { total: number }) {
 }
 
 export default function DemandPage() {
+  return <PaywallGate feature="Тест спроса"><DemandPageInner /></PaywallGate>;
+}
+
+function DemandPageInner() {
   const router = useRouter();
   const { journey, patch } = useJourney();
   const [copied, setCopied] = useState(false);

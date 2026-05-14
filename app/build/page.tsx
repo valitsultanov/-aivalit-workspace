@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useJourney, useTasks } from "@/hooks/useStore";
+import { PaywallGate } from "@/components/PaywallGate";
 import { Button } from "@/components/ui/button";
 import { BuildMilestone } from "@/lib/types";
 import { formatHours } from "@/lib/calculations";
@@ -9,6 +10,10 @@ import { cn } from "@/lib/utils";
 import { ArrowRight, Check, Clock, Lock, Zap } from "lucide-react";
 
 export default function BuildPage() {
+  return <PaywallGate feature="Build Sprint"><BuildPageInner /></PaywallGate>;
+}
+
+function BuildPageInner() {
   const router = useRouter();
   const { journey, patch } = useJourney();
   const { tasks } = useTasks();

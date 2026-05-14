@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useJourney, useSettings } from "@/hooks/useStore";
+import { PaywallGate } from "@/components/PaywallGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,10 @@ const SCRIPTS = [
 ];
 
 export default function SalePage() {
+  return <PaywallGate feature="Первая продажа"><SalePageInner /></PaywallGate>;
+}
+
+function SalePageInner() {
   const router = useRouter();
   const { journey, patch } = useJourney();
   const { settings } = useSettings();
