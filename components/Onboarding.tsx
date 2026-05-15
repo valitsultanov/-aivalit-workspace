@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Task } from "@/lib/types";
 import { saveSettings, getSettings, markOnboarded } from "@/lib/storage";
+import { loadDemoData } from "@/lib/demo";
 import { generateId, todayISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Clock, Zap, TrendingUp, DollarSign, Plus } from "lucide-react";
@@ -116,10 +117,17 @@ export function Onboarding({ onComplete }: Props) {
             </div>
 
             <Button className="w-full" size="lg" onClick={() => setStep(1)}>
-              Начать <ArrowRight className="h-4 w-4 ml-1" />
+              Начать с нуля <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+              onClick={() => { loadDemoData(); onComplete(); }}
+            >
+              ✨ Посмотреть с примером данных
             </Button>
             <button onClick={skipTask} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Пропустить и открыть приложение →
+              Пропустить →
             </button>
           </div>
         )}
