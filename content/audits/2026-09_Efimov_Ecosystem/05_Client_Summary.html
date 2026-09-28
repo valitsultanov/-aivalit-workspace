@@ -1,0 +1,282 @@
+<title>Вода · Пар · Школа</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=Onest:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --ink:#12272B; --muted:#546A6D; --line:#D5DFDD;
+  --accent:#1F6F6A; --water:#2F6E9A; --steam:#7663A3; --school:#9A6A26;
+  --bad:#B4432F; --mid:#B8871C; --good:#2E7D4F; --chip:#E4ECEA;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1A1C; --surface:#152427; --ink:#E4EEEC; --muted:#93A8A9; --line:#2A3C3F;
+    --accent:#5EC1B8; --water:#6FA9D6; --steam:#AE9CDB; --school:#D9A55C;
+    --bad:#E8826E; --mid:#E0B85A; --good:#6CC08E; --chip:#1D3033;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1A1C; --surface:#152427; --ink:#E4EEEC; --muted:#93A8A9; --line:#2A3C3F;
+  --accent:#5EC1B8; --water:#6FA9D6; --steam:#AE9CDB; --school:#D9A55C;
+  --bad:#E8826E; --mid:#E0B85A; --good:#6CC08E; --chip:#1D3033;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 "Onest",system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+h1,h2,h3{font-family:"Literata",Georgia,"Times New Roman",serif;text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700}
+h2{font-size:1.65rem;font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.mono,.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+section{display:grid;gap:18px;padding-block:40px;border-top:1px solid var(--line)}
+header{display:grid;gap:18px;padding-block:48px 36px}
+.lede{font-size:1.15rem;color:var(--ink)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:.9rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-family:"Literata",Georgia,serif;font-size:1.25rem}
+.flow span.w{color:var(--water)} .flow span.s{color:var(--steam)} .flow span.e{color:var(--school)}
+.flow i{font-style:normal;color:var(--muted)}
+.note{background:var(--chip);border-radius:10px;padding:14px 16px;font-size:.92rem;color:var(--muted)}
+.note b{color:var(--ink)}
+
+/* scores */
+.scores{display:grid;gap:14px}
+.srow{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;gap:14px;align-items:center}
+.srow .name{font-weight:600}
+.srow .name small{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
+.bar{height:12px;border-radius:6px;background:var(--chip);position:relative;overflow:hidden}
+.bar b{position:absolute;inset:0 auto 0 0;border-radius:6px}
+.srow .num{text-align:right;font-size:1rem}
+.scale{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;gap:14px;font-size:.75rem;color:var(--muted)}
+.scale div:nth-child(2){display:flex;justify-content:space-between}
+
+/* projects */
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}
+.proj{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px;align-content:start}
+.proj .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.proj .tag{font-size:.8rem;color:var(--muted)}
+.proj .score{font-family:"IBM Plex Mono",monospace;font-size:1.5rem}
+.proj[data-p="w"] h3,.proj[data-p="w"] .score{color:var(--water)}
+.proj[data-p="s"] h3,.proj[data-p="s"] .score{color:var(--steam)}
+.proj[data-p="e"] h3,.proj[data-p="e"] .score{color:var(--school)}
+.proj ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.93rem}
+.lbl{font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.plus{color:var(--good)} .minus{color:var(--bad)}
+
+/* people */
+.people{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.person{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:6px}
+.person .roles{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.78rem;padding:2px 9px;border-radius:999px;background:var(--chip)}
+.chip.w{color:var(--water)} .chip.s{color:var(--steam)} .chip.e{color:var(--school)}
+
+/* gaps table & compare */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.93rem}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.c{text-align:center}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.d-good{background:var(--good)} .d-mid{background:var(--mid)} .d-bad{background:var(--bad)}
+
+/* strategies */
+.strats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.strat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px;align-content:start}
+.strat.rec{border:2px solid var(--accent)}
+.strat .letter{font-family:"Literata",Georgia,serif;font-size:2.4rem;line-height:1;color:var(--accent)}
+.strat .when{font-size:.9rem;color:var(--muted)}
+.strat .pm{display:grid;gap:6px;font-size:.92rem}
+.strat .badge{justify-self:start;font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--accent);color:var(--surface)}
+
+/* roadmap */
+.road{display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:110px 1fr;gap:16px;padding-block:14px;border-bottom:1px dashed var(--line)}
+.step:last-child{border-bottom:0}
+.step .when{font-family:"IBM Plex Mono",monospace;font-size:.85rem;color:var(--accent);padding-top:2px}
+.step p{font-size:.93rem;color:var(--muted)}
+.step h3{font-size:1.02rem;margin-bottom:4px}
+
+ol.q{margin:0;padding-left:22px;display:grid;gap:8px;max-width:70ch}
+footer{padding-top:28px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem;display:grid;gap:6px}
+@media (max-width:560px){
+  .srow,.scale{grid-template-columns:1fr 46px}
+  .srow .name{grid-column:1/-1}
+  .scale div:first-child{display:none}
+  .step{grid-template-columns:1fr;gap:4px}
+}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Аудит и стратегия объединения · 28.09.2026</div>
+  <h1>Вода · Пар · Школа</h1>
+  <div class="flow"><span class="w">ПВВК</span><i>→</i><span class="s">Асатома</span><i>→</i><span class="e">ЕВА — Школа Жизни</span></div>
+  <p class="lede">У трёх проектов общие люди, общая идея и одна аудитория. Но клиент видит три отдельных магазина: три входа, три базы, три тона. Задача — чтобы человек, пришедший в любой из проектов, остался в экосистеме целиком.</p>
+  <div class="meta"><span>Подготовил: AiValit · Валит Султанов</span><span>pvvk.ru · asatomapar.ru · efimovschool.ru</span></div>
+</header>
+
+<section>
+  <div class="eyebrow">Оценка по пяти баллам</div>
+  <h2>Где проекты сейчас</h2>
+  <div class="scores">
+    <div class="srow"><div class="name">ПВВК<small>вода, аппарат ~90 000 ₽</small></div><div class="bar"><b style="width:52%;background:var(--water)"></b></div><div class="num">2,6</div></div>
+    <div class="srow"><div class="name">Асатома<small>пар, 3 города</small></div><div class="bar"><b style="width:48%;background:var(--steam)"></b></div><div class="num">2,4</div></div>
+    <div class="srow"><div class="name">ЕВА<small>курсы В.А. Ефимова</small></div><div class="bar"><b style="width:58%;background:var(--school)"></b></div><div class="num">2,9</div></div>
+    <div class="srow"><div class="name">Экосистема<small>связь между проектами</small></div><div class="bar"><b style="width:30%;background:var(--bad)"></b></div><div class="num">1,5</div></div>
+    <div class="scale"><div></div><div><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div><div></div></div>
+  </div>
+  <p class="note"><b>1</b> — нет или критично, <b>3</b> — работает с потерями, <b>5</b> — эталон. Продукты и эксперт сильные. Слабее всего сайты, воронки и связь между проектами.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Что уже связывает проекты</div>
+  <h2>Общие люди</h2>
+  <div class="people">
+    <div class="person">
+      <h3>Виктор Алексеевич Ефимов</h3>
+      <div class="roles"><span class="chip e">лицо школы</span><span class="chip w">эксперт в видео ПВВК</span><span class="chip s">связан с Асатомой</span></div>
+      <p>Д.э.н., профессор, экс-ректор СПбГАУ. Сотни видео на YouTube и RUTUBE. Главный источник доверия и охвата всей связки.</p>
+    </div>
+    <div class="person">
+      <h3>Виктор Павлович Кордюков</h3>
+      <div class="roles"><span class="chip w">руководитель ПВВК</span><span class="chip e">оператор данных efimovschool.ru</span></div>
+      <p>Операционное звено между водой и школой. Через него можно легально объединить базы клиентов.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Аудит по проектам</div>
+  <h2>Сильные стороны и главные дыры</h2>
+  <div class="grid3">
+    <article class="proj" data-p="w">
+      <div class="top"><h3>ПВВК</h3><span class="score">2,6</span></div>
+      <div class="tag">Аппарат для воды · 7 каналов · дилеры и маркетплейсы</div>
+      <div class="lbl plus">Сильное</div>
+      <ul><li>Легенда с 1967 года, разработчик, награды «Архимед»</li><li>Без сменных картриджей, гарантия 3 года</li><li>Яндекс: 4,8 ★ по 22 отзывам</li></ul>
+      <div class="lbl minus">Исправить</div>
+      <ul><li>Цена 85 000 и 94 900 ₽ в разных местах, объём 3,5 и 5,5 л</li><li>Три конкурирующих лендинга, на главной аппарат назван «фильтром»</li><li>Шоу-демонстрация с осадком уязвима к «разоблачениям»</li><li>Медицинские обещания в рекламе</li></ul>
+    </article>
+    <article class="proj" data-p="s">
+      <div class="top"><h3>Асатома</h3><span class="score">2,4</span></div>
+      <div class="tag">Живительный пар · СПб, Ижевск, Красная Поляна</div>
+      <div class="lbl plus">Сильное</div>
+      <ul><li>Слоган «Сауна греет. Спа расслабляет. Живительный пар возвращает.»</li><li>60 минут вместо 15–20 у конкурентов</li><li>Честный дисклеймер «wellness, не медицина»</li></ul>
+      <div class="lbl minus">Исправить</div>
+      <ul><li>Около 5 отзывов на картах в СПб</li><li>7 000 ₽ против 2 500 ₽ у «Живого пара», цена не объяснена</li><li>Около 10 аккаунтов с разными названиями</li><li>Нет понятного второго шага после первого визита</li></ul>
+    </article>
+    <article class="proj" data-p="e">
+      <div class="top"><h3>ЕВА</h3><span class="score">2,9</span></div>
+      <div class="tag">Онлайн-школа · флагман от 20 000 ₽</div>
+      <div class="lbl plus">Сильное</div>
+      <ul><li>Сильный личный бренд и регалии</li><li>Архив из сотен видео для нарезок</li><li>Кураторы, чат, встречи с экспертом в старших тарифах</li></ul>
+      <div class="lbl minus">Исправить</div>
+      <ul><li>Четыре домена и страницы-копии в поиске</li><li>Флагман выложен на пиратских «сливах»</li><li>Нет лестницы: что купить первым, что потом</li><li>Весь бизнес держится на одном человеке</li></ul>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Общий аудит</div>
+  <h2>Что разрывает экосистему</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Разрыв</th><th>Что теряем</th></tr></thead>
+    <tbody>
+      <tr><td>Нет общей базы и CRM</td><td>Покупатель аппарата за 90 000 ₽ для школы и пара остаётся холодным контактом</td></tr>
+      <tr><td>Нет совместных предложений</td><td>Ни одного пакета «вода + пар + школа», ни одного подарочного сертификата на всё</td></tr>
+      <tr><td>Около 25 аккаунтов в соцсетях</td><td>Контент делается трижды, аудитории маленькие, перетока нет</td></tr>
+      <tr><td>Три сайта, четыре домена школы, дилерские сайты</td><td>Вес бренда распылён, в поиске путаница и дубли</td></tr>
+      <tr><td>Разный тон</td><td>Техника, спа и мировоззрение звучат как три компании</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>Главный рычаг — перелив уже имеющихся клиентов, а не новый трафик.</b> Экосистема ещё и защищает: ценность переходит в то, что нельзя слить или вырвать из контекста — живой опыт пара, прибор, сообщество, встречи с экспертом.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Три варианта</div>
+  <h2>Как объединить проекты</h2>
+  <div class="strats">
+    <article class="strat">
+      <div class="letter">A</div>
+      <h3>Экосистема Ефимова</h3>
+      <p class="when">Всё под личным брендом. Школа — основа, вода и пар — практики для тела.</p>
+      <div class="pm"><span class="plus">+ быстро, максимум доверия ядра</span><span class="minus">− всё зависит от одного человека, политизированный контент переносится на продукты</span></div>
+      <div class="mono" style="font-size:.85rem;color:var(--muted)">2–3 месяца</div>
+    </article>
+    <article class="strat">
+      <div class="letter">B</div>
+      <h3>Новый бренд-зонт</h3>
+      <p class="when">Нейтральный бренд «здоровой среды» с линейками Вода, Пар и Знание. Ефимов — основатель-наставник.</p>
+      <div class="pm"><span class="plus">+ масштаб, франшиза, интерес инвестора, новая аудитория</span><span class="minus">− дорого и долго, риск потерять часть ядра</span></div>
+      <div class="mono" style="font-size:.85rem;color:var(--muted)">6–12 месяцев</div>
+    </article>
+    <article class="strat rec">
+      <span class="badge">Начать с этого</span>
+      <div class="letter">C</div>
+      <h3>Общий клиент, разные вывески</h3>
+      <p class="when">Бренды снаружи не меняются. Внутри — общая CRM, один бот, клуб лояльности и автоматические перекрёстные предложения.</p>
+      <div class="pm"><span class="plus">+ быстрее всех к деньгам, ничего не ломает, база пригодится для A или B</span><span class="minus">− снаружи эффект экосистемы слабее</span></div>
+      <div class="mono" style="font-size:.85rem;color:var(--muted)">1–2 месяца</div>
+    </article>
+  </div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Критерий</th><th>A · Ефимов</th><th>B · Новый зонт</th><th>C · Общий клиент</th></tr></thead>
+    <tbody>
+      <tr><td>Скорость до первых денег</td><td><span class="dot d-mid"></span>2–3 мес.</td><td><span class="dot d-bad"></span>6–12 мес.</td><td><span class="dot d-good"></span>1–2 мес.</td></tr>
+      <tr><td>Стоимость</td><td><span class="dot d-mid"></span>средняя</td><td><span class="dot d-bad"></span>высокая</td><td><span class="dot d-good"></span>низкая–средняя</td></tr>
+      <tr><td>Новая аудитория</td><td><span class="dot d-bad"></span>низко</td><td><span class="dot d-good"></span>высоко</td><td><span class="dot d-mid"></span>средне</td></tr>
+      <tr><td>Зависимость от эксперта</td><td><span class="dot d-bad"></span>высокая</td><td><span class="dot d-good"></span>низкая</td><td><span class="dot d-mid"></span>средняя</td></tr>
+      <tr><td>Репутационные и юридические риски</td><td><span class="dot d-bad"></span>высокие</td><td><span class="dot d-good"></span>низкие</td><td><span class="dot d-mid"></span>средние</td></tr>
+      <tr><td>Масштаб: франшиза, регионы</td><td><span class="dot d-bad"></span>слабо</td><td><span class="dot d-good"></span>сильно</td><td><span class="dot d-mid"></span>средне</td></tr>
+      <tr><td>Можно ли откатить решение</td><td><span class="dot d-mid"></span>частично</td><td><span class="dot d-bad"></span>сложно</td><td><span class="dot d-good"></span>легко</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>Рекомендация:</b> начать с C и параллельно проверить A и B на тестовом лендинге. Через 3–4 месяца выбрать бренд-зонт по данным: если перекрёстные продажи идут через доверие к Ефимову, усиливаем A; если растёт аудитория без него (карты, маркетплейсы, туристы на Красной Поляне), строим B.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Стратегия C на практике</div>
+  <h2>Три первых сценария перелива</h2>
+  <div class="grid3">
+    <div class="proj" data-p="w"><h3>Купил ПВВК</h3><p style="font-size:.93rem">Через 14 дней — сертификат на сеанс пара, если клиент в СПб, Ижевске или Сочи. Для остальных — бесплатный урок Ефимова о воде.</p></div>
+    <div class="proj" data-p="s"><h3>Был на паре</h3><p style="font-size:.93rem">Дегустация воды ПВВК на ресепшене. После третьего визита — скидка на аппарат для владельцев курса сеансов.</p></div>
+    <div class="proj" data-p="e"><h3>Прошёл курс</h3><p style="font-size:.93rem">Подборка «практики для тела»: вода и пар по цене для студентов. Встречи клуба проходят в пространстве Асатомы.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">12 месяцев</div>
+  <h2>Дорожная карта</h2>
+  <div class="road">
+    <div class="step"><div class="when">нед. 1–4</div><div><h3>Навести порядок</h3><p>Убрать дубли и старые акции, выровнять цены и характеристики ПВВК, переписать медицинские формулировки, маркировка рекламы и согласия на персональные данные.</p></div></div>
+    <div class="step"><div class="when">мес. 1–2</div><div><h3>Единый клиент</h3><p>CRM, сквозная аналитика, общий бот в Telegram, MAX и VK, импорт баз.</p></div></div>
+    <div class="step"><div class="when">мес. 2–3</div><div><h3>Перелив</h3><p>Три сценария выше, сертификаты, совместные эфиры. Первый замер дохода с клиента.</p></div></div>
+    <div class="step"><div class="when">мес. 2–4</div><div><h3>Одна редакция</h3><p>Один контент-план на три проекта, нарезки из архива Ефимова, статьи для Дзена, единые имена аккаунтов.</p></div></div>
+    <div class="step"><div class="when">мес. 3–4</div><div><h3>Проверка зонта</h3><p>Два тестовых лендинга, A и B, с одинаковым трафиком. Решение по конверсии и стоимости заявки.</p></div></div>
+    <div class="step"><div class="when">мес. 5–12</div><div><h3>Зонт и масштаб</h3><p>Сайт-хаб, клуб с подпиской, партнёрские точки Асатомы с водой ПВВК, дилеры по единым правилам.</p></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Перед стартом</div>
+  <h2>Вопросы к вам</h2>
+  <ol class="q">
+    <li>Какая юридическая структура: одно юрлицо или разные ИП и ООО? Кто владеет каждым проектом?</li>
+    <li>Главная цель на 12 месяцев: деньги сейчас, сеть по городам, инвестор или наследие Ефимова?</li>
+    <li>Готов ли Виктор Алексеевич быть лицом ПВВК и Асатомы и сколько времени может на это выделять?</li>
+    <li>Реальные цифры по каждому проекту: выручка, число клиентов, средний чек, размер баз.</li>
+    <li>Какие CRM, платформы и подрядчики работают сейчас?</li>
+    <li>Зарегистрированы ли товарные знаки «ПВВК», «Асатома», «ЕВА», «Синусоида»?</li>
+    <li>Готовы ли вы разделить мировоззренческий контент и контент о здоровье?</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Аудит собран по открытым источникам: страницы сайтов в поисковом индексе, маркетплейсы, карты, отзывы, публикации и видеоплатформы. Скорость сайтов, индексацию и статистику соцсетей нужно проверить с доступом к Метрике, Вебмастеру и аккаунтам.</p>
+  <p>Маркетинговый аудит, не медицинская экспертиза. AiValit — и голова не болит.</p>
+</footer>
+</div>

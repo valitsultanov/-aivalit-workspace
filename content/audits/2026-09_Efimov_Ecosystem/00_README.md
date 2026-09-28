@@ -12,6 +12,7 @@
 | 2 | [02_Asatoma_Audit.md](02_Asatoma_Audit.md) | Аудит Асатомы: 3 города, цены конкурентов, сайт, офлайн-воронка, соцсети, план |
 | 3 | [03_EVA_Efimov_School_Audit.md](03_EVA_Efimov_School_Audit.md) | Аудит ЕВА / efimovschool.ru: личный бренд, курсы, воронка, план |
 | 4 | [04_Integration_3_Strategies.md](04_Integration_3_Strategies.md) | Общий аудит связки + 3 стратегии объединения + дорожная карта |
+| 5 | [05_Client_Summary.html](05_Client_Summary.html) | Короткая версия для клиента (веб-страница) |
 
 ## Главный вывод в одном абзаце
 
