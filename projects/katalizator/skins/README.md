@@ -24,3 +24,13 @@ tiny gold star speckles (constellation glitter) on the body, collectible figure 
 1. Берём материал Валита (фото человека / персонажа / сцену).
 2. Промпт: «Transform <subject> into a glossy vinyl zodiac art-toy in the style of <<<SKIN_element_id>>>, keep identity/pose of the subject, <детали знака из таблицы>».
 3. Скин хранится в Higgsfield как Element `skin-<знак>` (после загрузки).
+
+## Higgsfield Elements (загружены 2026-11-23)
+| Скин | Element ID |
+|---|---|
+| skin-aries | 535c7496-3559-4873-a7d6-907d68bffd13 |
+| skin-leo | 46c1b669-771f-48fe-bff6-4e92c8eb1c68 |
+| skin-sagittarius | 39d77d75-d09a-4681-97d1-76443160568d |
+| skin-virgo | db793e1c-7dd0-4f5f-8bb2-4074ab5f336b |
+| skin-capricorn | 34f8e470-d809-4fdc-9ad0-e1c0761646cc |
+| Телец, Близнецы, Рак, Весы, Скорпион, Водолей, Рыбы | ждут файлов |
