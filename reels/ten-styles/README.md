@@ -6,7 +6,7 @@
 ```
 npm install
 npx remotion studio                                   # живой превью
-npx remotion render src/index.ts Explainer out/reel.mp4      # 30 fps
+npx remotion render src/index.ts Explainer out/reel.mp4 --timeout=120000 --concurrency=3   # 30 fps, ~10 мин на 4 ядрах
 npx remotion render src/index.ts Explainer60 out/reel60.mp4  # 60 fps
 npx remotion render src/index.ts Style out/pixel.mp4 --props='{"i":0}'  # отдельный 3-сек клип стиля (i = 0..9, -1 = исходник)
 ```
