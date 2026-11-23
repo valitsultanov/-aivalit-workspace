@@ -4,6 +4,7 @@ import {C, FONT} from './theme';
 import {T, TOTAL, end} from './timeline';
 import {blink, clamp, E, p, rnd, sp, SPR, track, typed, useT} from './anim';
 import {Pop, RollText} from './components/primitives';
+import {Lang, STR} from './strings';
 
 const W = 1080, H = 1920;
 
@@ -47,6 +48,12 @@ const Coin: React.FC<{x: number; y: number; r: number; spin: number; glow: numbe
   const sx = Math.max(0.1, Math.abs(c));
   const edge = (c >= 0 ? 1 : -1) * r * 0.1 * (1 - sx);
   const shine = ((spin * 0.6) % 2) - 0.5; // -0.5..1.5
+  const dots = Array.from({length: 18}, (_, i) => {
+    const a = spin * 0.55 + (i * Math.PI * 2) / 18;
+    const ox = Math.cos(a) * r * 1.75, oy = Math.sin(a) * r * 0.4;
+    return {x: ox * Math.cos(-0.3) - oy * Math.sin(-0.3), y: ox * Math.sin(-0.3) + oy * Math.cos(-0.3), front: Math.sin(a) > 0, s: r * (0.012 + (i % 3) * 0.008)};
+  });
+  const spark = (d: {x: number; y: number; s: number}, i: number) => <circle key={i} cx={d.x} cy={d.y} r={d.s} fill={C.gold1} opacity={0.9} />;
   return (
     <svg width={W} height={H} style={{position: 'absolute', inset: 0}}>
       <defs>
@@ -67,6 +74,8 @@ const Coin: React.FC<{x: number; y: number; r: number; spin: number; glow: numbe
       </defs>
       <g transform={`translate(${x},${y})`}>
         <circle r={r * 2.3} fill="url(#coin-glow)" opacity={glow} />
+        <ellipse rx={r * 1.75} ry={r * 0.4} fill="none" stroke={C.gold1} strokeOpacity={0.18} strokeWidth={2} transform="rotate(-17)" />
+        {dots.filter((d) => !d.front).map(spark)}
         <g transform={`scale(${sx},1)`}>
           <circle cx={edge / sx} r={r} fill={C.gold4} />
           <circle r={r} fill="url(#coin-face)" />
@@ -77,6 +86,7 @@ const Coin: React.FC<{x: number; y: number; r: number; spin: number; glow: numbe
             <rect x={shine * r * 2 - r} y={-r * 1.5} width={r * 0.35} height={r * 3} fill="#fff" opacity={0.45} transform="rotate(20)" />
           </g>
         </g>
+        {dots.filter((d) => d.front).map(spark)}
       </g>
     </svg>
   );
@@ -120,6 +130,11 @@ const Stairs: React.FC<{t: number}> = ({t}) => {
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
+      {Array.from({length: 11}, (_, i) => {
+        const a = Math.PI / 2 + (i - 5) * 0.11 + Math.sin(t * 0.8 + i) * 0.02;
+        const w = 0.025 + (i % 3) * 0.01;
+        return <path key={`ray${i}`} d={`M540,560 L${540 + Math.cos(a - w) * 1600},${560 + Math.sin(a - w) * 1600} L${540 + Math.cos(a + w) * 1600},${560 + Math.sin(a + w) * 1600} Z`} fill={C.gold1} opacity={0.07 * steps[N - 1].a} />;
+      })}
       <path d={`M${540 - 300},1600 L${540 - 60},640 L${540 + 60},640 L${540 + 300},1600 Z`} fill={C.gold2} opacity={0.08 * steps[N - 1].a} />
       {steps.map((s, i) => (
         <rect key={i} x={540 - s.w / 2} y={s.y - s.h / 2} width={s.w} height={s.h} rx={s.h / 2} fill="url(#step)" opacity={s.a} filter="url(#step-glow)" />
@@ -174,6 +189,16 @@ const Portal: React.FC<{t: number}> = ({t}) => {
               <ellipse key={i} cx={cx + ((t * 30 + i * 120) % 500) - 250} cy={cy - 120 + i * 70} rx={160} ry={18} fill="#FFFFFF" />
             ))}
           </g>
+          {[0, 1, 2, 3, 4, 5].map((i) => {
+            const a = t * 0.5 + (i * Math.PI * 2) / 6;
+            const mx = cx + Math.cos(a) * 300 * pl, my = cy + Math.sin(a) * 120 * pl - 60 + Math.sin(t * 2 + i) * 10;
+            return (
+              <g key={`m${i}`} transform={`translate(${mx},${my}) scale(${Math.abs(Math.cos(t * 2 + i)) * 0.6 + 0.4},1)`} opacity={pl}>
+                <circle r={24} fill={C.gold2} stroke={C.gold1} strokeWidth={3} />
+                <text y={9} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={26} fill={C.gold4}>X</text>
+              </g>
+            );
+          })}
           <path d={`M${cx - 330 * pl * 0.97},${cy + 20 * pl} A ${330 * pl} ${70 * pl} 0 0 0 ${cx + 330 * pl * 0.97},${cy - 20 * pl}`} fill="none" stroke={C.accent} strokeWidth={14} strokeOpacity={0.9} transform={`rotate(-14,${cx},${cy})`} />
         </g>
       )}
@@ -182,7 +207,8 @@ const Portal: React.FC<{t: number}> = ({t}) => {
 };
 
 /* ---------------- the reel ---------------- */
-export const Reel: React.FC = () => {
+export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
+  const S = STR[lang];
   const {t: realT, fps} = useT();
   // freeze frame during the "stop" beat
   const frozen = realT >= T.stop && realT < T.game;
@@ -199,10 +225,12 @@ export const Reel: React.FC = () => {
   const ctaCoin = track(realT, [[T.cta, {y: 1100, r: 40}], [T.cta + 0.6, {y: 560, r: 130}, E.outBack]]);
   const spin = realT * 1.8 + (1 - p(realT, 0, 0.9)) * Math.PI * 4;
   const warp = p(t, T.dream, 0.6) * (1 - p(t, end('dream') - 0.3, 0.3));
-  const flash = 1 - p(realT, 0.1, 0.7, E.outCubic);
+  const flash = p(realT, 0.05, 0.12, E.linear) * (1 - p(realT, 0.17, 0.7, E.outCubic));
+  const portalFlash = realT >= T.game ? 1 - p(realT, T.game, 0.5, E.outCubic) : 0;
+  const punch = 1 + [T.token, T.dream, T.game, T.cta].reduce((acc, b) => acc + (realT >= b ? (1 - p(realT, b, 0.4, E.outCubic)) * 0.05 : 0), 0);
 
   return (
-    <AbsoluteFill style={{background: C.space1}}>
+    <AbsoluteFill style={{background: C.space1, transform: `scale(${punch})`}}>
       <AbsoluteFill style={{filter: frozen ? 'grayscale(1) contrast(1.3) brightness(0.7)' : undefined}}>
         <Space t={t} warp={warp} />
         {t < T.dream + 3.6 && <AbsoluteFill style={{opacity: fade(t, T.dream - 0.1, T.game + 0.3, 0.3)}}><Stairs t={t} /></AbsoluteFill>}
@@ -212,11 +240,13 @@ export const Reel: React.FC = () => {
       {/* ignition flash on the first frames */}
       <AbsoluteFill style={{background: `radial-gradient(circle at 540px 960px, rgba(255,236,170,${0.85 * flash}) 0%, rgba(255,200,61,${0.35 * flash}) ${18 + 40 * (1 - flash)}%, rgba(0,0,0,0) ${30 + 60 * (1 - flash)}%)`}} />
 
+      <AbsoluteFill style={{background: `radial-gradient(circle at 540px 800px, rgba(220,250,255,${0.9 * portalFlash}) 0%, rgba(124,243,255,${0.4 * portalFlash}) 30%, rgba(0,0,0,0) 70%)`}} />
+
       {/* 1. hook */}
       {realT < T.token + 0.3 && (
         <AbsoluteFill style={{top: 200, alignItems: 'center'}}>
-          <RollText text="Одна монета." t={realT} tin={-0.6} tout={T.token - 0.3} size={112} />
-          <RollText text="Целая *вселенная*." t={realT} tin={-0.45} tout={T.token - 0.3} size={112} />
+          <RollText text={S.hook1} t={realT} tin={-0.6} tout={T.token - 0.3} size={112} />
+          <RollText text={S.hook2} t={realT} tin={-0.45} tout={T.token - 0.3} size={112} />
         </AbsoluteFill>
       )}
 
@@ -224,13 +254,13 @@ export const Reel: React.FC = () => {
       {realT >= T.token - 0.1 && realT < T.dream + 0.2 && (
         <AbsoluteFill>
           <AbsoluteFill style={{top: 200, alignItems: 'center'}}>
-            <RollText text="*X* — токен" t={realT} tin={T.token + 0.05} tout={T.dream - 0.3} size={120} />
-            <RollText text="игровой вселенной" t={realT} tin={T.token + 0.15} tout={T.dream - 0.3} size={76} style={{fontWeight: 800}} />
+            <RollText text={S.tok1} t={realT} tin={T.token + 0.05} tout={T.dream - 0.3} size={120} />
+            <RollText text={S.tok2} t={realT} tin={T.token + 0.15} tout={T.dream - 0.3} size={76} style={{fontWeight: 800}} />
           </AbsoluteFill>
           {[
-            {txt: 'Платишь в игре', x: 120, y: 1060, d: 0.7},
-            {txt: 'Получаешь награды', x: 360, y: 1170, d: 1.5},
-            {txt: 'Владеешь предметами', x: 150, y: 1280, d: 2.3},
+            {txt: S.c1, x: 120, y: 1060, d: 0.7},
+            {txt: S.c2, x: 360, y: 1170, d: 1.5},
+            {txt: S.c3, x: 150, y: 1280, d: 2.3},
           ].map((c, i) => (
             <div key={i} style={{position: 'absolute', left: c.x, top: c.y}}>
               <Pop t={realT} fps={fps} tin={T.token + c.d} tout={T.dream - 0.3}>
@@ -244,8 +274,8 @@ export const Reel: React.FC = () => {
       {/* 3. dream */}
       {t >= T.dream - 0.1 && realT < T.stop && (
         <AbsoluteFill style={{top: 190, alignItems: 'center'}}>
-          <RollText text="Для тех, кто" t={t} tin={T.dream + 0.2} tout={T.stop - 0.25} size={92} style={{fontWeight: 800}} />
-          <RollText text="мечтает о *большем*" t={t} tin={T.dream + 0.32} tout={T.stop - 0.25} size={104} />
+          <RollText text={S.dream1} t={t} tin={T.dream + 0.2} tout={T.stop - 0.25} size={92} style={{fontWeight: 800}} />
+          <RollText text={S.dream2} t={t} tin={T.dream + 0.32} tout={T.stop - 0.25} size={104} />
         </AbsoluteFill>
       )}
 
@@ -256,13 +286,13 @@ export const Reel: React.FC = () => {
             const j = Math.sin(Math.floor(realT * 24) * (3.1 + i)) * 14;
             return (
               <div key={i} style={{position: 'absolute', top: 760 + i * 4, left: 0, right: 0, textAlign: 'center', transform: `translateX(${i === 0 ? 0 : j}px)`, fontFamily: FONT, fontWeight: 900, fontSize: 190, color: i === 0 ? '#fff' : i === 1 ? '#FF3EA5' : '#7CF3FF', opacity: i === 0 ? 1 : 0.55, mixBlendMode: i === 0 ? 'normal' : 'screen'}}>
-                СТОП.
+                {S.stop}
               </div>
             );
           })}
           <div style={{position: 'absolute', top: 1000, width: '100%', textAlign: 'center'}}>
             <Pop t={realT} fps={fps} tin={T.stop + 0.45}>
-              <Chip size={54}>Главное — дальше</Chip>
+              <Chip size={54}>{S.stop2}</Chip>
             </Pop>
           </div>
         </AbsoluteFill>
@@ -273,14 +303,14 @@ export const Reel: React.FC = () => {
         <AbsoluteFill style={{opacity: fade(realT, T.game - 0.1, T.cta + 0.3)}}>
           <Portal t={realT} />
           <AbsoluteFill style={{top: 190, alignItems: 'center'}}>
-            <RollText text="Добро пожаловать в" t={realT} tin={T.game + 0.2} tout={T.cta - 0.3} size={70} style={{fontWeight: 800}} />
+            <RollText text={S.game1} t={realT} tin={T.game + 0.2} tout={T.cta - 0.3} size={70} style={{fontWeight: 800}} />
             <RollText text="*X GAME*" t={realT} tin={T.game + 0.35} tout={T.cta - 0.3} size={170} />
           </AbsoluteFill>
           <div style={{position: 'absolute', top: 1110, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 24}}>
             {[
-              ['⚔️', 'Арена'],
-              ['🗺️', 'Квесты'],
-              ['🏆', 'Награды в X'],
+              ['⚔️', S.g1],
+              ['🗺️', S.g2],
+              ['🏆', S.g3],
             ].map(([e, l], i) => (
               <Pop key={i} t={realT} fps={fps} tin={T.game + 1.4 + i * 0.35} tout={T.cta - 0.3}>
                 <div style={{width: 290, height: 190, borderRadius: 32, background: 'rgba(20,12,60,0.78)', border: `2px solid ${i === 2 ? C.accent : 'rgba(124,243,255,0.45)'}`, boxShadow: C.shadow, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: FONT}}>
@@ -292,7 +322,7 @@ export const Reel: React.FC = () => {
           </div>
           <div style={{position: 'absolute', top: 1340, width: '100%', textAlign: 'center'}}>
             <Pop t={realT} fps={fps} tin={T.game + 2.7} tout={T.cta - 0.3}>
-              <Chip size={40} style={{fontWeight: 700}}>токен X работает внутри игры</Chip>
+              <Chip size={40} style={{fontWeight: 700}}>{S.game2}</Chip>
             </Pop>
           </div>
         </AbsoluteFill>
@@ -303,8 +333,8 @@ export const Reel: React.FC = () => {
         <AbsoluteFill>
           <Coin x={540} y={ctaCoin.y} r={ctaCoin.r} spin={spin} glow={1} />
           <AbsoluteFill style={{top: 190, alignItems: 'center'}}>
-            <RollText text="Напиши *X*" t={realT} tin={T.cta + 0.1} tout={T.save - 0.25} size={130} />
-            <RollText text="пришлю гайд, как начать" t={realT} tin={T.cta + 0.22} tout={T.save - 0.25} size={62} style={{fontWeight: 700}} />
+            <RollText text={S.cta1} t={realT} tin={T.cta + 0.1} tout={T.save - 0.25} size={130} />
+            <RollText text={S.cta2} t={realT} tin={T.cta + 0.22} tout={T.save - 0.25} size={62} style={{fontWeight: 700}} />
           </AbsoluteFill>
           <div style={{position: 'absolute', top: 820, width: '100%', display: 'flex', justifyContent: 'center'}}>
             <Pop t={realT} fps={fps} tin={T.cta + 0.4} tout={T.save - 0.25}>
@@ -314,21 +344,21 @@ export const Reel: React.FC = () => {
                 return (
                   <div style={{width: 820, height: 116, borderRadius: 58, background: '#fff', display: 'flex', alignItems: 'center', padding: '0 18px 0 44px', boxSizing: 'border-box', fontFamily: FONT, boxShadow: C.shadow}}>
                     <div style={{flex: 1, fontSize: 52, fontWeight: 900, color: '#111'}}>
-                      {typed('X', realT, typeAt, 6) || <span style={{color: '#999', fontWeight: 600, fontSize: 44}}>Комментарий…</span>}
+                      {typed('X', realT, typeAt, 6) || <span style={{color: '#999', fontWeight: 600, fontSize: 44}}>{S.ph}</span>}
                       {!posted && realT > typeAt && <span style={{opacity: blink(realT), color: C.gold3}}>|</span>}
                     </div>
-                    <div style={{height: 82, padding: '0 32px', borderRadius: 41, display: 'flex', alignItems: 'center', background: posted ? '#22C55E' : C.gold3, color: '#fff', fontSize: 36, fontWeight: 900}}>{posted ? 'Отправлено ✓' : 'Отправить'}</div>
+                    <div style={{height: 82, padding: '0 32px', borderRadius: 41, display: 'flex', alignItems: 'center', background: posted ? '#22C55E' : C.gold3, color: '#fff', fontSize: 36, fontWeight: 900}}>{posted ? S.posted : S.post}</div>
                   </div>
                 );
               })()}
             </Pop>
           </div>
           <AbsoluteFill style={{top: 860, alignItems: 'center'}}>
-            <RollText text="Сохрани," t={realT} tin={T.save + 0.05} size={120} />
-            <RollText text="чтобы не *потерять*" t={realT} tin={T.save + 0.15} size={88} />
+            <RollText text={S.save1} t={realT} tin={T.save + 0.05} size={120} />
+            <RollText text={S.save2} t={realT} tin={T.save + 0.15} size={88} />
           </AbsoluteFill>
           <div style={{position: 'absolute', top: 1300, width: '100%', textAlign: 'center', fontFamily: FONT, fontSize: 30, fontWeight: 600, color: 'rgba(255,255,255,0.75)', opacity: clamp((realT - T.save) * 3)}}>
-            Не финансовая рекомендация. Криптоактивы связаны с риском.
+            {S.disc}
           </div>
         </AbsoluteFill>
       )}
