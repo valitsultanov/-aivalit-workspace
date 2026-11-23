@@ -5,6 +5,7 @@ Space style, 1080x1920, 20 s. Render:
 cd reels/x-token && npm install   # or symlink node_modules from ../ten-styles
 npx remotion render src/index.ts XToken out/x-token.mp4 --timeout=120000 --concurrency=3      # RU
 npx remotion render src/index.ts XTokenEN out/x-token-en.mp4 --timeout=120000 --concurrency=3  # EN
+npx remotion render src/index.ts XTokenLegoEN out/x-token-lego-en.mp4 --timeout=120000 --concurrency=3  # LEGO, EN (XTokenLego = RU)
 ```
 All on-screen text (RU and EN) lives in `src/strings.ts`. Timing in `src/timeline.ts`, scenes in `src/Reel.tsx`, colours in `src/theme.ts`.
 

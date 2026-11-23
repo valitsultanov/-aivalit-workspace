@@ -5,6 +5,7 @@ import {T, TOTAL, end} from './timeline';
 import {blink, clamp, E, p, rnd, sp, SPR, track, typed, useT} from './anim';
 import {Pop, RollText} from './components/primitives';
 import {Lang, STR} from './strings';
+import {BrickChip, L, LegoCoin, LegoPortal, LegoSpace, LegoStairs} from './lego';
 
 const W = 1080, H = 1920;
 
@@ -93,7 +94,7 @@ const Coin: React.FC<{x: number; y: number; r: number; spin: number; glow: numbe
 };
 
 /* ---------------- small pieces ---------------- */
-const Chip: React.FC<{children: React.ReactNode; size?: number; style?: React.CSSProperties}> = ({children, size = 48, style}) => (
+const Chip: React.FC<{children: React.ReactNode; size?: number; style?: React.CSSProperties; color?: string}> = ({children, size = 48, style}) => (
   <div style={{display: 'inline-flex', alignItems: 'center', gap: 16, padding: '16px 32px', borderRadius: 999, background: C.chip, border: `2px solid ${C.chipLine}`, boxShadow: C.shadow, fontFamily: FONT, fontWeight: 800, fontSize: size, color: C.text, ...style}}>
     {children}
   </div>
@@ -207,8 +208,11 @@ const Portal: React.FC<{t: number}> = ({t}) => {
 };
 
 /* ---------------- the reel ---------------- */
-export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
+export const Reel: React.FC<{lang?: Lang; look?: 'space' | 'lego'}> = ({lang = 'ru', look = 'space'}) => {
   const S = STR[lang];
+  const lego = look === 'lego';
+  const CoinC = lego ? LegoCoin : Coin;
+  const ChipC: React.FC<any> = lego ? BrickChip : Chip;
   const {t: realT, fps} = useT();
   // freeze frame during the "stop" beat
   const frozen = realT >= T.stop && realT < T.game;
@@ -232,9 +236,9 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
   return (
     <AbsoluteFill style={{background: C.space1, transform: `scale(${punch})`}}>
       <AbsoluteFill style={{filter: frozen ? 'grayscale(1) contrast(1.3) brightness(0.7)' : undefined}}>
-        <Space t={t} warp={warp} />
-        {t < T.dream + 3.6 && <AbsoluteFill style={{opacity: fade(t, T.dream - 0.1, T.game + 0.3, 0.3)}}><Stairs t={t} /></AbsoluteFill>}
-        {realT < T.game + 0.1 && <Coin x={coin.x} y={coin.y} r={coin.r} spin={spin} glow={coin.glow} />}
+        {lego ? <LegoSpace t={t} warp={warp} /> : <Space t={t} warp={warp} />}
+        {t < T.dream + 3.6 && <AbsoluteFill style={{opacity: fade(t, T.dream - 0.1, T.game + 0.3, 0.3)}}>{lego ? <LegoStairs t={t} /> : <Stairs t={t} />}</AbsoluteFill>}
+        {realT < T.game + 0.1 && <CoinC x={coin.x} y={coin.y} r={coin.r * (lego ? 1.2 : 1)} spin={spin} glow={coin.glow} />}
       </AbsoluteFill>
 
       {/* ignition flash on the first frames */}
@@ -264,7 +268,7 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
           ].map((c, i) => (
             <div key={i} style={{position: 'absolute', left: c.x, top: c.y}}>
               <Pop t={realT} fps={fps} tin={T.token + c.d} tout={T.dream - 0.3}>
-                <Chip><span style={{color: C.accent}}>{['01', '02', '03'][i]}</span>{c.txt}</Chip>
+                <ChipC color={[L.red, L.blue, L.teal][i]}><span style={{color: lego ? L.yellow2 : C.accent}}>{['01', '02', '03'][i]}</span>{c.txt}</ChipC>
               </Pop>
             </div>
           ))}
@@ -292,7 +296,7 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
           })}
           <div style={{position: 'absolute', top: 1000, width: '100%', textAlign: 'center'}}>
             <Pop t={realT} fps={fps} tin={T.stop + 0.45}>
-              <Chip size={54}>{S.stop2}</Chip>
+              <ChipC size={54} color={L.red}>{S.stop2}</ChipC>
             </Pop>
           </div>
         </AbsoluteFill>
@@ -301,7 +305,7 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
       {/* 5. the game */}
       {realT >= T.game - 0.1 && realT < T.cta + 0.3 && (
         <AbsoluteFill style={{opacity: fade(realT, T.game - 0.1, T.cta + 0.3)}}>
-          <Portal t={realT} />
+          {lego ? <LegoPortal t={realT} /> : <Portal t={realT} />}
           <AbsoluteFill style={{top: 190, alignItems: 'center'}}>
             <RollText text={S.game1} t={realT} tin={T.game + 0.2} tout={T.cta - 0.3} size={70} style={{fontWeight: 800}} />
             <RollText text="*X GAME*" t={realT} tin={T.game + 0.35} tout={T.cta - 0.3} size={170} />
@@ -313,16 +317,16 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
               ['🏆', S.g3],
             ].map(([e, l], i) => (
               <Pop key={i} t={realT} fps={fps} tin={T.game + 1.4 + i * 0.35} tout={T.cta - 0.3}>
-                <div style={{width: 290, height: 190, borderRadius: 32, background: 'rgba(20,12,60,0.78)', border: `2px solid ${i === 2 ? C.accent : 'rgba(124,243,255,0.45)'}`, boxShadow: C.shadow, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: FONT}}>
+                <div style={{width: 290, height: 190, borderRadius: lego ? 10 : 32, background: lego ? [L.red, L.blue, L.yellow][i] : 'rgba(20,12,60,0.78)', border: lego ? 'none' : `2px solid ${i === 2 ? C.accent : 'rgba(124,243,255,0.45)'}`, boxShadow: lego ? 'inset 0 8px 0 rgba(255,255,255,0.3), inset 0 -10px 0 rgba(0,0,0,0.22), 0 12px 30px rgba(0,0,0,0.45)' : C.shadow, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: FONT}}>
                   <div style={{fontSize: 72}}>{e}</div>
-                  <div style={{fontSize: 40, fontWeight: 800, color: i === 2 ? C.accent : C.text}}>{l}</div>
+                  <div style={{fontSize: 40, fontWeight: 800, color: lego ? (i === 2 ? '#111' : '#fff') : i === 2 ? C.accent : C.text}}>{l}</div>
                 </div>
               </Pop>
             ))}
           </div>
           <div style={{position: 'absolute', top: 1340, width: '100%', textAlign: 'center'}}>
             <Pop t={realT} fps={fps} tin={T.game + 2.7} tout={T.cta - 0.3}>
-              <Chip size={40} style={{fontWeight: 700}}>{S.game2}</Chip>
+              <ChipC size={40} color={L.blue} style={{fontWeight: 700}}>{S.game2}</ChipC>
             </Pop>
           </div>
         </AbsoluteFill>
@@ -331,7 +335,7 @@ export const Reel: React.FC<{lang?: Lang}> = ({lang = 'ru'}) => {
       {/* 6. CTA + 7. save */}
       {realT >= T.cta && (
         <AbsoluteFill>
-          <Coin x={540} y={ctaCoin.y} r={ctaCoin.r} spin={spin} glow={1} />
+          <CoinC x={540} y={ctaCoin.y} r={ctaCoin.r} spin={spin} glow={1} />
           <AbsoluteFill style={{top: 190, alignItems: 'center'}}>
             <RollText text={S.cta1} t={realT} tin={T.cta + 0.1} tout={T.save - 0.25} size={130} />
             <RollText text={S.cta2} t={realT} tin={T.cta + 0.22} tout={T.save - 0.25} size={62} style={{fontWeight: 700}} />
